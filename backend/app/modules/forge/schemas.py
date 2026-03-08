@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class JobCreate(BaseModel):
-    blueprint_id: str | None = None
+    type_id: int | None = None  # World API type ID
     blueprint_name: str
     quantity: int = 1
     assigned_to: UUID | None = None
@@ -19,7 +19,7 @@ class JobUpdate(BaseModel):
 
 class JobResponse(BaseModel):
     id: UUID
-    blueprint_id: str | None
+    type_id: int | None
     blueprint_name: str | None
     quantity: int
     status: str
@@ -34,13 +34,13 @@ class JobResponse(BaseModel):
 
 
 class InventoryItem(BaseModel):
-    item_id: str
+    item_id: int  # World API type ID
     item_name: str
     quantity: int
 
 
 class InventoryResponse(BaseModel):
-    item_id: str
+    item_id: int
     item_name: str | None
     quantity: int
     updated_at: datetime

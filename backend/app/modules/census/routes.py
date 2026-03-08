@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_current_member, require_leader_or_officer
+from app.modules.census.sync import sync_all_tribes, sync_tribe_members
 from app.db.models import JoinRequest, Member, Tribe
 from app.db.session import get_db
 
@@ -220,3 +221,28 @@ async def update_member_role(
     target.role = body.role
     await db.commit()
     return {"detail": f"Role updated to {body.role}"}
+
+
+@router.post("/sync/tribes")
+async def sync_tribes(
+    member: Member = Depends(require_leader_or_officer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pull all tribes from World API into local DB."""
+    result = await sync_all_tribes(db)
+    return result
+
+
+@router.post("/sync/tribes/{tribe_id}/members")
+async def sync_members(
+    tribe_id: UUID,
+    member: Member = Depends(require_leader_or_officer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sync members for a specific tribe from World API."""
+    if member.tribe_id != tribe_id:
+        raise HTTPException(status_code=403, detail="Not a member of this tribe")
+    result = await sync_tribe_members(db, tribe_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result

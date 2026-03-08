@@ -30,7 +30,7 @@ async def create_job(
         tribe_id=tribe_id,
         created_by=member.id,
         assigned_to=body.assigned_to,
-        blueprint_id=body.blueprint_id,
+        type_id=body.type_id,
         blueprint_name=body.blueprint_name,
         quantity=body.quantity,
     )
@@ -171,7 +171,7 @@ async def _job_to_response(job: ProductionJob, db: AsyncSession) -> JobResponse:
 
     return JobResponse(
         id=job.id,
-        blueprint_id=job.blueprint_id,
+        type_id=job.type_id,
         blueprint_name=job.blueprint_name,
         quantity=job.quantity,
         status=job.status,
