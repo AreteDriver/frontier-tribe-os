@@ -1,0 +1,52 @@
+[
+  {
+    "type_id": "bp_smartassembly_gatehouse",
+    "name": "Gatehouse Smart Assembly",
+    "category": "smart_assembly",
+    "materials": [
+      {"item_id": "mat_iron", "name": "Iron", "quantity": 500},
+      {"item_id": "mat_copper", "name": "Copper", "quantity": 200},
+      {"item_id": "mat_silicon", "name": "Silicon", "quantity": 100}
+    ]
+  },
+  {
+    "type_id": "bp_smartassembly_turret",
+    "name": "Turret Smart Assembly",
+    "category": "smart_assembly",
+    "materials": [
+      {"item_id": "mat_iron", "name": "Iron", "quantity": 800},
+      {"item_id": "mat_copper", "name": "Copper", "quantity": 400},
+      {"item_id": "mat_fuel", "name": "Fuel", "quantity": 150}
+    ]
+  },
+  {
+    "type_id": "bp_ship_fighter",
+    "name": "Fighter Ship",
+    "category": "ship",
+    "materials": [
+      {"item_id": "mat_iron", "name": "Iron", "quantity": 1200},
+      {"item_id": "mat_silicon", "name": "Silicon", "quantity": 600},
+      {"item_id": "mat_fuel", "name": "Fuel", "quantity": 300},
+      {"item_id": "mat_electronics", "name": "Electronics", "quantity": 200}
+    ]
+  },
+  {
+    "type_id": "bp_ship_hauler",
+    "name": "Hauler Ship",
+    "category": "ship",
+    "materials": [
+      {"item_id": "mat_iron", "name": "Iron", "quantity": 2000},
+      {"item_id": "mat_copper", "name": "Copper", "quantity": 800},
+      {"item_id": "mat_fuel", "name": "Fuel", "quantity": 500}
+    ]
+  },
+  {
+    "type_id": "bp_module_shield",
+    "name": "Shield Module",
+    "category": "module",
+    "materials": [
+      {"item_id": "mat_silicon", "name": "Silicon", "quantity": 400},
+      {"item_id": "mat_electronics", "name": "Electronics", "quantity": 300}
+    ]
+  }
+]
