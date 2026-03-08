@@ -39,7 +39,8 @@ async def create_tribe(
 
     tribe = Tribe(
         name=body.name,
-        leader_character_id=member.character_id,
+        name_short=body.name_short,
+        leader_address=member.wallet_address,
         invite_code=secrets.token_urlsafe(16),
     )
     db.add(tribe)
@@ -54,6 +55,7 @@ async def create_tribe(
     return TribeResponse(
         id=tribe.id,
         name=tribe.name,
+        name_short=tribe.name_short,
         invite_code=tribe.invite_code,
         created_at=tribe.created_at,
         member_count=1,
@@ -75,6 +77,7 @@ async def get_tribe(
     return TribeResponse(
         id=tribe.id,
         name=tribe.name,
+        name_short=tribe.name_short,
         invite_code=tribe.invite_code if member.tribe_id == tribe_id else None,
         created_at=tribe.created_at,
         member_count=count or 0,
@@ -111,7 +114,7 @@ async def request_join(
     existing = await db.scalar(
         select(JoinRequest).where(
             JoinRequest.tribe_id == tribe.id,
-            JoinRequest.character_id == member.character_id,
+            JoinRequest.wallet_address == member.wallet_address,
             JoinRequest.status == "pending",
         )
     )
@@ -120,7 +123,7 @@ async def request_join(
 
     request = JoinRequest(
         tribe_id=tribe.id,
-        character_id=member.character_id,
+        wallet_address=member.wallet_address,
         character_name=member.character_name,
     )
     db.add(request)
@@ -169,7 +172,7 @@ async def handle_join_request(
     if body.action == "approve":
         # Find or create member record for this character
         existing_member = await db.scalar(
-            select(Member).where(Member.character_id == join_req.character_id)
+            select(Member).where(Member.wallet_address == join_req.wallet_address)
         )
         if existing_member:
             existing_member.tribe_id = tribe_id
@@ -178,7 +181,7 @@ async def handle_join_request(
         else:
             new_member = Member(
                 tribe_id=tribe_id,
-                character_id=join_req.character_id,
+                wallet_address=join_req.wallet_address,
                 character_name=join_req.character_name,
                 role="recruit",
             )

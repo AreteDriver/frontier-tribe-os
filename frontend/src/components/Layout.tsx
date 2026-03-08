@@ -14,7 +14,7 @@ export default function Layout() {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('characterName');
-    localStorage.removeItem('characterId');
+    localStorage.removeItem('walletAddress');
     navigate('/');
   };
 

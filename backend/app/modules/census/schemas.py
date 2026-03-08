@@ -6,11 +6,13 @@ from pydantic import BaseModel
 
 class TribeCreate(BaseModel):
     name: str
+    name_short: str | None = None
 
 
 class TribeResponse(BaseModel):
     id: UUID
     name: str
+    name_short: str | None
     invite_code: str | None
     created_at: datetime
     member_count: int = 0
@@ -20,7 +22,7 @@ class TribeResponse(BaseModel):
 
 class MemberResponse(BaseModel):
     id: UUID
-    character_id: str
+    wallet_address: str
     character_name: str | None
     role: str
     timezone: str | None
@@ -36,7 +38,7 @@ class RoleUpdate(BaseModel):
 
 class JoinRequestResponse(BaseModel):
     id: UUID
-    character_id: str
+    wallet_address: str
     character_name: str | None
     status: str
     requested_at: datetime

@@ -3,7 +3,7 @@ import api from '../api';
 
 interface Member {
   id: string;
-  character_id: string;
+  wallet_address: string;
   character_name: string | null;
   role: string;
   timezone: string | null;
@@ -13,7 +13,7 @@ interface Member {
 
 interface JoinRequest {
   id: string;
-  character_id: string;
+  wallet_address: string;
   character_name: string | null;
   status: string;
   requested_at: string;
@@ -89,7 +89,7 @@ export default function Roster() {
           </h3>
           {requests.map((req) => (
             <div key={req.id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
-              <span>{req.character_name || req.character_id}</span>
+              <span>{req.character_name || req.wallet_address}</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleRequest(req.id, 'approve')}
@@ -123,7 +123,7 @@ export default function Roster() {
           <tbody>
             {members.map((m) => (
               <tr key={m.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-hover)]">
-                <td className="px-4 py-3">{m.character_name || m.character_id}</td>
+                <td className="px-4 py-3">{m.character_name || m.wallet_address}</td>
                 <td className={`px-4 py-3 capitalize ${ROLE_COLORS[m.role] || ''}`}>{m.role}</td>
                 <td className="px-4 py-3 text-[var(--color-text-dim)]">{m.timezone || '—'}</td>
                 <td className="px-4 py-3 text-[var(--color-text-dim)]">

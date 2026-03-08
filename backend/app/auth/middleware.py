@@ -20,11 +20,11 @@ async def get_current_member(
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
-    character_id = payload.get("sub")
-    if character_id is None:
+    wallet_address = payload.get("sub")
+    if wallet_address is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    result = await db.execute(select(Member).where(Member.character_id == character_id))
+    result = await db.execute(select(Member).where(Member.wallet_address == wallet_address))
     member = result.scalar_one_or_none()
     if member is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Member not found")

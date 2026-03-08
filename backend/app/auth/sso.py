@@ -86,6 +86,6 @@ async def get_smart_character(wallet_address: str) -> dict | None:
 def generate_dev_identity(name: str = "DevPilot") -> dict:
     """Generate a mock identity for development without SSO."""
     return {
-        "character_id": f"dev-{secrets.token_hex(8)}",
+        "wallet_address": f"0x{secrets.token_hex(20)}",
         "character_name": name,
     }

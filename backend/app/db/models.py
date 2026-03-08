@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -11,11 +11,19 @@ class Base(DeclarativeBase):
 
 
 class Tribe(Base):
+    """Local tribe record — maps to World API /v2/tribes/{id}.
+
+    We store our own UUID as PK for internal FK relationships,
+    but world_tribe_id links back to the integer ID from the World API.
+    """
+
     __tablename__ = "tribes"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    world_tribe_id: Mapped[int | None] = mapped_column(Integer, unique=True)  # From /v2/tribes
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    leader_character_id: Mapped[str | None] = mapped_column(String(100))
+    name_short: Mapped[str | None] = mapped_column(String(10))  # Ticker e.g. "WOLF"
+    leader_address: Mapped[str | None] = mapped_column(String(42))  # 0x... wallet address
     invite_code: Mapped[str | None] = mapped_column(String(32), unique=True)
     token_contract_address: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -27,19 +35,31 @@ class Tribe(Base):
 
 
 class Member(Base):
+    """Local member record — maps to World API /v2/smartcharacters/{address}.
+
+    wallet_address is the primary identity (0x hex string from Sui zkLogin).
+    character_name comes from the World API "name" field.
+    """
+
     __tablename__ = "members"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tribe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tribes.id"))
-    character_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    tribe_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tribes.id"))
+    wallet_address: Mapped[str] = mapped_column(String(42), unique=True, nullable=False)  # 0x... hex
     character_name: Mapped[str | None] = mapped_column(String(255))
+    smart_character_id: Mapped[str | None] = mapped_column(String(100))  # On-chain entity ID (big int)
     role: Mapped[str] = mapped_column(String(50), default="recruit")
     timezone: Mapped[str | None] = mapped_column(String(50))
     last_active: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    tribe: Mapped["Tribe"] = relationship(back_populates="members")
-    assigned_jobs: Mapped[list["ProductionJob"]] = relationship(back_populates="assigned_member")
+    tribe: Mapped["Tribe | None"] = relationship(back_populates="members")
+    assigned_jobs: Mapped[list["ProductionJob"]] = relationship(
+        back_populates="assigned_member", foreign_keys="ProductionJob.assigned_to"
+    )
+    created_jobs: Mapped[list["ProductionJob"]] = relationship(
+        back_populates="creator", foreign_keys="ProductionJob.created_by"
+    )
 
 
 class JoinRequest(Base):
@@ -47,7 +67,7 @@ class JoinRequest(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tribe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tribes.id"))
-    character_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    wallet_address: Mapped[str] = mapped_column(String(42), nullable=False)
     character_name: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(50), default="pending")
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -62,7 +82,7 @@ class ProductionJob(Base):
     tribe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tribes.id"))
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("members.id"))
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("members.id"))
-    blueprint_id: Mapped[str | None] = mapped_column(String(100))
+    type_id: Mapped[int | None] = mapped_column(Integer)  # World API type ID
     blueprint_name: Mapped[str | None] = mapped_column(String(255))
     quantity: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(50), default="queued")
@@ -71,6 +91,7 @@ class ProductionJob(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     tribe: Mapped["Tribe"] = relationship(back_populates="production_jobs")
+    creator: Mapped["Member"] = relationship(back_populates="created_jobs", foreign_keys=[created_by])
     assigned_member: Mapped["Member | None"] = relationship(back_populates="assigned_jobs", foreign_keys=[assigned_to])
 
 
@@ -80,9 +101,10 @@ class TribeInventory(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tribe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tribes.id"))
-    item_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    item_id: Mapped[int] = mapped_column(Integer, nullable=False)  # World API type ID
     item_name: Mapped[str | None] = mapped_column(String(255))
     quantity: Mapped[int] = mapped_column(Integer, default=0)
+    volume_per_unit: Mapped[float | None] = mapped_column(Float)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("members.id"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

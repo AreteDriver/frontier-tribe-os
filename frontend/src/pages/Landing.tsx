@@ -19,7 +19,7 @@ export default function Landing() {
       const { data } = await api.post(`/auth/dev-login?name=${encodeURIComponent(name)}`);
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('characterName', data.character_name);
-      localStorage.setItem('characterId', data.character_id);
+      localStorage.setItem('walletAddress', data.wallet_address);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed');
