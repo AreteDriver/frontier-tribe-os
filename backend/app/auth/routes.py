@@ -21,6 +21,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.get("/login")
 async def login():
     """Redirect user to EVE Frontier FusionAuth OAuth2."""
+    if not settings.eve_frontier_client_id:
+        raise HTTPException(
+            status_code=501,
+            detail="SSO not configured — set EVE_FRONTIER_CLIENT_ID and EVE_FRONTIER_CLIENT_SECRET",
+        )
     url, state = await get_authorize_url()
     return {"authorize_url": url, "state": state}
 
@@ -32,6 +37,11 @@ async def callback(
     db: AsyncSession = Depends(get_db),
 ):
     """Handle FusionAuth callback — exchange code, get userinfo, return JWT."""
+    if not settings.eve_frontier_client_id:
+        raise HTTPException(
+            status_code=501,
+            detail="SSO not configured — set EVE_FRONTIER_CLIENT_ID and EVE_FRONTIER_CLIENT_SECRET",
+        )
     try:
         token_data = await exchange_code(code)
         user_info = await get_userinfo(token_data["access_token"])

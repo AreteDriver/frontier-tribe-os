@@ -62,10 +62,27 @@ async def test_expired_token_returns_401(client):
     assert resp.status_code == 401
 
 
-async def test_login_returns_authorize_url(client):
+async def test_login_returns_501_without_credentials(client):
+    """SSO login requires EVE_FRONTIER_CLIENT_ID to be configured."""
     resp = await client.get("/auth/login")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "authorize_url" in data
-    assert "state" in data
-    assert "auth.evefrontier.com" in data["authorize_url"]
+    assert resp.status_code == 501
+    assert "SSO not configured" in resp.json()["detail"]
+
+
+async def test_login_returns_authorize_url_with_credentials(client):
+    with (
+        patch("app.auth.routes.settings") as mock_route_settings,
+        patch("app.auth.sso.settings") as mock_sso_settings,
+    ):
+        mock_route_settings.eve_frontier_client_id = "test-client-id"
+        mock_sso_settings.eve_frontier_client_id = "test-client-id"
+        mock_sso_settings.eve_frontier_callback_url = (
+            "http://localhost:5173/auth/callback"
+        )
+        resp = await client.get("/auth/login")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "authorize_url" in data
+        assert "state" in data
+        assert "auth.evefrontier.com" in data["authorize_url"]
+        assert "test-client-id" in data["authorize_url"]
