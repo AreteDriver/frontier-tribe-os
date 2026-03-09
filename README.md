@@ -6,7 +6,7 @@
 
 **EVE Frontier x Sui Hackathon 2026** | March 11-31
 
-**Live Demo**: [frontier-tribe-os.fly.dev](https://frontier-tribe-os.fly.dev/health)
+**Live Demo**: [Frontend](https://frontend-ten-theta-80.vercel.app) | [API](https://frontier-tribe-os.fly.dev/docs)
 
 ## The Problem
 

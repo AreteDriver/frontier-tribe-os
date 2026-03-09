@@ -34,7 +34,8 @@ async def get_item_types() -> list[dict]:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(f"{BASE_URL}/v2/types")
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            return data.get("data", data) if isinstance(data, dict) else data
     except Exception:
         logger.warning("World API types fetch failed, using static fallback")
         return _load_static("blueprints.json")
@@ -58,7 +59,9 @@ async def get_tribes() -> list[dict]:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(f"{BASE_URL}/v2/tribes", params={"limit": 1000})
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            # World API wraps in {data: [...]} or returns plain list
+            return data.get("data", data) if isinstance(data, dict) else data
     except Exception as e:
         logger.warning("World API tribes fetch failed: %s", e)
         return []
@@ -85,7 +88,8 @@ async def get_smart_assemblies(assembly_type: str | None = None) -> list[dict]:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(f"{BASE_URL}/v2/smartassemblies", params=params)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            return data.get("data", data) if isinstance(data, dict) else data
     except Exception as e:
         logger.warning("World API assemblies fetch failed: %s", e)
         return []
