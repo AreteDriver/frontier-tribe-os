@@ -8,9 +8,9 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Uuid,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -27,9 +27,7 @@ class Tribe(Base):
 
     __tablename__ = "tribes"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     world_tribe_id: Mapped[int | None] = mapped_column(
         Integer, unique=True
     )  # From /v2/tribes
@@ -70,12 +68,8 @@ class Member(Base):
 
     __tablename__ = "members"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    tribe_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tribes.id")
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("tribes.id"))
     wallet_address: Mapped[str] = mapped_column(
         String(42), unique=True, nullable=False
     )  # 0x... hex
@@ -102,12 +96,8 @@ class Member(Base):
 class JoinRequest(Base):
     __tablename__ = "join_requests"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    tribe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tribes.id")
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tribes.id"))
     wallet_address: Mapped[str] = mapped_column(String(42), nullable=False)
     character_name: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(50), default="pending")
@@ -121,17 +111,11 @@ class JoinRequest(Base):
 class ProductionJob(Base):
     __tablename__ = "production_jobs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    tribe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tribes.id")
-    )
-    created_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("members.id")
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tribes.id"))
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("members.id"))
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("members.id")
+        Uuid, ForeignKey("members.id")
     )
     type_id: Mapped[int | None] = mapped_column(Integer)  # World API type ID
     blueprint_name: Mapped[str | None] = mapped_column(String(255))
@@ -156,19 +140,13 @@ class TribeInventory(Base):
     __tablename__ = "tribe_inventory"
     __table_args__ = (UniqueConstraint("tribe_id", "item_id", name="uq_tribe_item"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    tribe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tribes.id")
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tribes.id"))
     item_id: Mapped[int] = mapped_column(Integer, nullable=False)  # World API type ID
     item_name: Mapped[str | None] = mapped_column(String(255))
     quantity: Mapped[int] = mapped_column(Integer, default=0)
     volume_per_unit: Mapped[float | None] = mapped_column(Float)
-    updated_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("members.id")
-    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("members.id"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -181,12 +159,8 @@ class LedgerTransaction(Base):
 
     __tablename__ = "ledger_transactions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    tribe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tribes.id")
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tribes.id"))
     tx_digest: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     from_address: Mapped[str] = mapped_column(String(66), nullable=False)
     to_address: Mapped[str] = mapped_column(String(66), nullable=False)
@@ -196,9 +170,7 @@ class LedgerTransaction(Base):
     coin_type: Mapped[str] = mapped_column(String(255), default="0x2::sui::SUI")
     memo: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(50), default="confirmed")
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("members.id")
-    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("members.id"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

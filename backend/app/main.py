@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.routes import router as auth_router
-from app.config import settings
 from app.db.models import Base
 from app.db.session import engine
 from app.modules.census.routes import router as census_router
@@ -15,9 +14,8 @@ from app.modules.ledger.routes import router as ledger_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create tables on startup (dev only — use Alembic in prod)
-    if settings.environment == "development":
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
@@ -31,7 +29,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://frontier-tribe-os.fly.dev",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
