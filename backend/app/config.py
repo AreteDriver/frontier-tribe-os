@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://tribeuser:tribepass@localhost:5432/tribedb"
+    database_url: str = (
+        "postgresql+asyncpg://tribeuser:tribepass@localhost:5432/tribedb"
+    )
     redis_url: str = "redis://localhost:6379"
     secret_key: str = "change-me-to-a-random-32-char-string-minimum"
     environment: str = "development"
@@ -11,6 +13,9 @@ class Settings(BaseSettings):
     eve_frontier_client_id: str = ""
     eve_frontier_client_secret: str = ""
     eve_frontier_callback_url: str = "http://localhost:8000/auth/callback"
+
+    # Sui
+    sui_rpc_url: str = "https://fullnode.mainnet.sui.io:443"
 
     # JWT
     jwt_algorithm: str = "HS256"

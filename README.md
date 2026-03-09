@@ -1,5 +1,7 @@
 # Frontier Tribe OS
 
+![CI](https://github.com/AreteDriver/frontier-tribe-os/actions/workflows/ci.yml/badge.svg)
+
 > Operations platform for EVE Frontier Tribes and Syndicates — a toolkit for civilization.
 
 **EVE Frontier x Sui Hackathon 2026** | March 11-31

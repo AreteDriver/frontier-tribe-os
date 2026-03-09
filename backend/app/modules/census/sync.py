@@ -28,7 +28,9 @@ async def sync_all_tribes(db: AsyncSession) -> dict:
         if not world_id:
             continue
 
-        existing = await db.scalar(select(Tribe).where(Tribe.world_tribe_id == world_id))
+        existing = await db.scalar(
+            select(Tribe).where(Tribe.world_tribe_id == world_id)
+        )
         if existing:
             existing.name = t.get("name", existing.name)
             existing.name_short = t.get("nameShort", existing.name_short)
@@ -68,9 +70,13 @@ async def sync_tribe_members(db: AsyncSession, tribe_id: UUID) -> dict:
         if not address or address == "0x0000000000000000000000000000000000000000":
             continue
 
-        existing = await db.scalar(select(Member).where(Member.wallet_address == address))
+        existing = await db.scalar(
+            select(Member).where(Member.wallet_address == address)
+        )
         if existing:
-            existing.character_name = name if name != "DEFAULT" else existing.character_name
+            existing.character_name = (
+                name if name != "DEFAULT" else existing.character_name
+            )
             existing.smart_character_id = entity_id
             if existing.tribe_id != tribe_id:
                 existing.tribe_id = tribe_id

@@ -5,7 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.jwt import create_access_token
-from app.auth.sso import exchange_code, generate_dev_identity, get_authorize_url, get_userinfo
+from app.auth.sso import (
+    exchange_code,
+    generate_dev_identity,
+    get_authorize_url,
+    get_userinfo,
+)
 from app.config import settings
 from app.db.models import Member
 from app.db.session import get_db
@@ -36,14 +41,24 @@ async def callback(
     # FusionAuth userinfo returns sub (user ID), email, preferred_username, etc.
     # The wallet address is derived via zkLogin — for now use sub as identity
     wallet_address = user_info.get("sub", "")
-    character_name = user_info.get("preferred_username") or user_info.get("name", "Unknown")
+    character_name = user_info.get("preferred_username") or user_info.get(
+        "name", "Unknown"
+    )
 
     if not wallet_address:
-        raise HTTPException(status_code=400, detail="Could not extract identity from SSO response")
+        raise HTTPException(
+            status_code=400, detail="Could not extract identity from SSO response"
+        )
 
     member = await _get_or_create_member(db, wallet_address, character_name)
-    token = create_access_token({"sub": member.wallet_address, "name": member.character_name})
-    return {"access_token": token, "token_type": "bearer", "character_name": member.character_name}
+    token = create_access_token(
+        {"sub": member.wallet_address, "name": member.character_name}
+    )
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "character_name": member.character_name,
+    }
 
 
 @router.post("/dev-login")
@@ -53,11 +68,17 @@ async def dev_login(
 ):
     """Dev-only login that creates a mock identity. Disabled in production."""
     if settings.environment != "development":
-        raise HTTPException(status_code=403, detail="Dev login not available in production")
+        raise HTTPException(
+            status_code=403, detail="Dev login not available in production"
+        )
 
     identity = generate_dev_identity(name)
-    member = await _get_or_create_member(db, identity["wallet_address"], identity["character_name"])
-    token = create_access_token({"sub": member.wallet_address, "name": member.character_name})
+    member = await _get_or_create_member(
+        db, identity["wallet_address"], identity["character_name"]
+    )
+    token = create_access_token(
+        {"sub": member.wallet_address, "name": member.character_name}
+    )
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -66,8 +87,12 @@ async def dev_login(
     }
 
 
-async def _get_or_create_member(db: AsyncSession, wallet_address: str, character_name: str) -> Member:
-    result = await db.execute(select(Member).where(Member.wallet_address == wallet_address))
+async def _get_or_create_member(
+    db: AsyncSession, wallet_address: str, character_name: str
+) -> Member:
+    result = await db.execute(
+        select(Member).where(Member.wallet_address == wallet_address)
+    )
     member = result.scalar_one_or_none()
     if not member:
         member = Member(wallet_address=wallet_address, character_name=character_name)

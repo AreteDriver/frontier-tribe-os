@@ -25,7 +25,9 @@ router = APIRouter(prefix="/census", tags=["census"])
 VALID_ROLES = {"leader", "officer", "member", "recruit"}
 
 
-@router.post("/tribes", response_model=TribeResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tribes", response_model=TribeResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_tribe(
     body: TribeCreate,
     member: Member = Depends(get_current_member),
@@ -142,7 +144,9 @@ async def list_join_requests(
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
 
     result = await db.execute(
-        select(JoinRequest).where(JoinRequest.tribe_id == tribe_id, JoinRequest.status == "pending")
+        select(JoinRequest).where(
+            JoinRequest.tribe_id == tribe_id, JoinRequest.status == "pending"
+        )
     )
     return result.scalars().all()
 
@@ -159,7 +163,9 @@ async def handle_join_request(
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
 
     if body.action not in ("approve", "deny"):
-        raise HTTPException(status_code=400, detail="Action must be 'approve' or 'deny'")
+        raise HTTPException(
+            status_code=400, detail="Action must be 'approve' or 'deny'"
+        )
 
     join_req = await db.get(JoinRequest, request_id)
     if not join_req or join_req.tribe_id != tribe_id:
@@ -189,7 +195,8 @@ async def handle_join_request(
             db.add(new_member)
 
     await db.commit()
-    return {"detail": f"Request {body.action}d"}
+    result_word = "approved" if body.action == "approve" else "denied"
+    return {"detail": f"Request {result_word}"}
 
 
 @router.patch("/tribes/{tribe_id}/members/{member_id}/role")
@@ -204,11 +211,15 @@ async def update_member_role(
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
 
     if body.role not in VALID_ROLES:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {VALID_ROLES}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid role. Must be one of: {VALID_ROLES}"
+        )
 
     # Only leaders can promote to officer
     if body.role == "officer" and member.role != "leader":
-        raise HTTPException(status_code=403, detail="Only leaders can promote to officer")
+        raise HTTPException(
+            status_code=403, detail="Only leaders can promote to officer"
+        )
 
     target = await db.get(Member, member_id)
     if not target or target.tribe_id != tribe_id:

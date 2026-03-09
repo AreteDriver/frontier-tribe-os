@@ -16,7 +16,11 @@ router = APIRouter(prefix="/forge", tags=["forge"])
 VALID_STATUSES = {"queued", "in_progress", "blocked", "complete"}
 
 
-@router.post("/tribes/{tribe_id}/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tribes/{tribe_id}/jobs",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_job(
     tribe_id: UUID,
     body: JobCreate,
@@ -78,7 +82,10 @@ async def update_job(
 
     if body.status is not None:
         if body.status not in VALID_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {VALID_STATUSES}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {VALID_STATUSES}",
+            )
         job.status = body.status
         if body.status == "complete":
             job.completed_at = datetime.now(timezone.utc)
@@ -93,7 +100,9 @@ async def update_job(
     return await _job_to_response(job, db)
 
 
-@router.delete("/tribes/{tribe_id}/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/tribes/{tribe_id}/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_job(
     tribe_id: UUID,
     job_id: UUID,
@@ -121,7 +130,9 @@ async def list_inventory(
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
 
     result = await db.execute(
-        select(TribeInventory).where(TribeInventory.tribe_id == tribe_id).order_by(TribeInventory.item_name)
+        select(TribeInventory)
+        .where(TribeInventory.tribe_id == tribe_id)
+        .order_by(TribeInventory.item_name)
     )
     return result.scalars().all()
 

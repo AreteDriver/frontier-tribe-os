@@ -76,7 +76,9 @@ async def get_smart_character(wallet_address: str) -> dict | None:
     """Lookup smart character from World API by wallet address."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{WORLD_API_BASE}/v2/smartcharacters/{wallet_address}")
+            resp = await client.get(
+                f"{WORLD_API_BASE}/v2/smartcharacters/{wallet_address}"
+            )
             resp.raise_for_status()
             return resp.json()
     except Exception:
