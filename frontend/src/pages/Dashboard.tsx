@@ -5,6 +5,7 @@ import api from '../api';
 interface Tribe {
   id: string;
   name: string;
+  name_short: string | null;
   invite_code: string | null;
   member_count: number;
   created_at: string;
@@ -14,72 +15,145 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [tribe, setTribe] = useState<Tribe | null>(null);
   const [tribeName, setTribeName] = useState('');
+  const [tribeShort, setTribeShort] = useState('');
   const [inviteCode, setInviteCode] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [joinSuccess, setJoinSuccess] = useState('');
   const characterName = localStorage.getItem('characterName') || 'Pilot';
+
+  useEffect(() => {
+    loadTribe();
+  }, []);
+
+  const loadTribe = async () => {
+    const tribeId = localStorage.getItem('tribeId');
+    if (!tribeId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data } = await api.get(`/census/tribes/${tribeId}`);
+      setTribe(data);
+    } catch {
+      // Tribe may have been deleted — clear stale reference
+      localStorage.removeItem('tribeId');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const createTribe = async () => {
     if (!tribeName.trim()) return;
-    setLoading(true);
+    setActionLoading(true);
     setError('');
     try {
-      const { data } = await api.post('/census/tribes', { name: tribeName });
+      const { data } = await api.post('/census/tribes', {
+        name: tribeName,
+        name_short: tribeShort || null,
+      });
       setTribe(data);
       localStorage.setItem('tribeId', data.id);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create tribe');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   const joinTribe = async () => {
     if (!inviteCode.trim()) return;
-    setLoading(true);
+    setActionLoading(true);
     setError('');
+    setJoinSuccess('');
     try {
-      await api.post(`/census/tribes/join/${inviteCode}`);
-      setError(''); // Would redirect after approval
-      alert('Join request submitted! Wait for leader approval.');
+      const { data } = await api.post(`/census/tribes/join/${inviteCode}`);
+      setJoinSuccess(`Join request submitted to ${data.tribe_name || 'tribe'}. Waiting for leader approval.`);
+      setInviteCode('');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to join tribe');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
+
+  const copyInviteCode = () => {
+    if (tribe?.invite_code) {
+      navigator.clipboard.writeText(tribe.invite_code);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto flex items-center justify-center py-12">
+        <div className="w-6 h-6 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h2 className="text-2xl font-bold">Welcome, {characterName}</h2>
 
       {tribe ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
-          <h3 className="text-xl font-semibold text-[var(--color-primary)]">{tribe.name}</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-[var(--color-text-dim)]">Members:</span>{' '}
-              {tribe.member_count}
+        <div className="space-y-4">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-semibold text-[var(--color-primary)]">{tribe.name}</h3>
+              {tribe.name_short && (
+                <span className="text-sm px-2 py-0.5 rounded bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                  [{tribe.name_short}]
+                </span>
+              )}
             </div>
-            <div>
-              <span className="text-[var(--color-text-dim)]">Invite Code:</span>{' '}
-              <code className="bg-[var(--color-bg)] px-2 py-1 rounded text-[var(--color-primary)]">
-                {tribe.invite_code}
-              </code>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-[var(--color-text-dim)]">Members</span>
+                <p className="text-lg font-semibold">{tribe.member_count}</p>
+              </div>
+              <div>
+                <span className="text-[var(--color-text-dim)]">Invite Code</span>
+                <p className="flex items-center gap-2">
+                  <code className="bg-[var(--color-bg)] px-2 py-1 rounded text-[var(--color-primary)] text-sm">
+                    {tribe.invite_code}
+                  </code>
+                  <button
+                    onClick={copyInviteCode}
+                    className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text)] cursor-pointer"
+                    title="Copy to clipboard"
+                  >
+                    copy
+                  </button>
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex gap-3 pt-2">
+
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/roster')}
-              className="px-4 py-2 rounded bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer"
+              className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
             >
-              View Roster
+              <div className="text-2xl mb-1">&#128101;</div>
+              <div className="text-sm font-medium">Census</div>
+              <div className="text-xs text-[var(--color-text-dim)]">Roster & roles</div>
             </button>
             <button
               onClick={() => navigate('/production')}
-              className="px-4 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-dim)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+              className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
             >
-              Production Board
+              <div className="text-2xl mb-1">&#9874;</div>
+              <div className="text-sm font-medium">Forge</div>
+              <div className="text-xs text-[var(--color-text-dim)]">Production board</div>
+            </button>
+            <button
+              onClick={() => navigate('/treasury')}
+              className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
+            >
+              <div className="text-2xl mb-1">&#128176;</div>
+              <div className="text-sm font-medium">Ledger</div>
+              <div className="text-xs text-[var(--color-text-dim)]">Treasury & tokens</div>
             </button>
           </div>
         </div>
@@ -93,11 +167,20 @@ export default function Dashboard() {
                 placeholder="Tribe name"
                 value={tribeName}
                 onChange={(e) => setTribeName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && createTribe()}
                 className="flex-1 px-4 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                type="text"
+                placeholder="Tag (e.g. WOLF)"
+                maxLength={10}
+                value={tribeShort}
+                onChange={(e) => setTribeShort(e.target.value.toUpperCase())}
+                className="w-32 px-4 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
               />
               <button
                 onClick={createTribe}
-                disabled={loading}
+                disabled={actionLoading}
                 className="px-4 py-2 rounded bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer disabled:opacity-50"
               >
                 Create
@@ -110,14 +193,15 @@ export default function Dashboard() {
             <div className="flex gap-3">
               <input
                 type="text"
-                placeholder="Invite code"
+                placeholder="Paste invite code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && joinTribe()}
                 className="flex-1 px-4 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
               />
               <button
                 onClick={joinTribe}
-                disabled={loading}
+                disabled={actionLoading}
                 className="px-4 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-dim)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)] transition-colors cursor-pointer disabled:opacity-50"
               >
                 Join
@@ -127,8 +211,16 @@ export default function Dashboard() {
         </div>
       )}
 
+      {joinSuccess && (
+        <div className="bg-green-900/20 border border-green-800/30 rounded-lg p-3 text-sm text-green-400">
+          {joinSuccess}
+        </div>
+      )}
+
       {error && (
-        <p className="text-sm text-[var(--color-danger)]">{error}</p>
+        <div className="bg-red-900/20 border border-red-800/30 rounded-lg p-3 text-sm text-[var(--color-danger)]">
+          {error}
+        </div>
       )}
     </div>
   );

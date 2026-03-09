@@ -19,17 +19,18 @@ interface JoinRequest {
   requested_at: string;
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  leader: 'text-yellow-400',
-  officer: 'text-blue-400',
-  member: 'text-[var(--color-primary)]',
-  recruit: 'text-[var(--color-text-dim)]',
+const ROLE_BADGES: Record<string, string> = {
+  leader: 'bg-yellow-900/30 text-yellow-400 border-yellow-800/30',
+  officer: 'bg-blue-900/30 text-blue-400 border-blue-800/30',
+  member: 'bg-green-900/30 text-green-400 border-green-800/30',
+  recruit: 'bg-gray-900/30 text-gray-400 border-gray-800/30',
 };
 
 export default function Roster() {
   const [members, setMembers] = useState<Member[]>([]);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const tribeId = localStorage.getItem('tribeId');
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function Roster() {
   }, [tribeId]);
 
   const loadData = async () => {
+    setError('');
     try {
       const [membersRes, requestsRes] = await Promise.all([
         api.get(`/census/tribes/${tribeId}/members`),
@@ -45,8 +47,8 @@ export default function Roster() {
       ]);
       setMembers(membersRes.data);
       setRequests(requestsRes.data);
-    } catch {
-      // handled by interceptor
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load roster');
     } finally {
       setLoading(false);
     }
@@ -56,8 +58,8 @@ export default function Roster() {
     try {
       await api.post(`/census/tribes/${tribeId}/requests/${requestId}`, { action });
       loadData();
-    } catch {
-      // handled by interceptor
+    } catch (err: any) {
+      setError(err.response?.data?.detail || `Failed to ${action} request`);
     }
   };
 
@@ -65,31 +67,58 @@ export default function Roster() {
     try {
       await api.patch(`/census/tribes/${tribeId}/members/${memberId}/role`, { role });
       loadData();
-    } catch {
-      // handled by interceptor
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to update role');
     }
   };
 
   if (!tribeId) {
-    return <p className="text-[var(--color-text-dim)]">No tribe selected. Create or join one from the Dashboard.</p>;
+    return (
+      <div className="max-w-4xl mx-auto space-y-4">
+        <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
+        <p className="text-[var(--color-text-dim)]">No tribe selected. Create or join one from the Dashboard.</p>
+      </div>
+    );
   }
 
   if (loading) {
-    return <p className="text-[var(--color-text-dim)]">Loading roster...</p>;
+    return (
+      <div className="max-w-4xl mx-auto space-y-4">
+        <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
+        <div className="flex items-center gap-3 py-8">
+          <div className="w-5 h-5 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+          <span className="text-[var(--color-text-dim)]">Loading roster...</span>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
+        <span className="text-sm text-[var(--color-text-dim)]">{members.length} member{members.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {error && (
+        <div className="bg-red-900/20 border border-red-800/30 rounded-lg p-3 text-sm text-[var(--color-danger)]">
+          {error}
+        </div>
+      )}
 
       {requests.length > 0 && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-warning)] rounded-lg p-4 space-y-3">
-          <h3 className="text-lg font-semibold text-[var(--color-warning)]">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-warning)]/50 rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-[var(--color-warning)]">
             Pending Requests ({requests.length})
           </h3>
           {requests.map((req) => (
             <div key={req.id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
-              <span>{req.character_name || req.wallet_address}</span>
+              <div>
+                <span className="font-medium">{req.character_name || 'Unknown'}</span>
+                <span className="text-xs text-[var(--color-text-dim)] ml-2 font-mono">
+                  {req.wallet_address.slice(0, 10)}...
+                </span>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleRequest(req.id, 'approve')}
@@ -115,7 +144,7 @@ export default function Roster() {
             <tr className="border-b border-[var(--color-border)] text-[var(--color-text-dim)]">
               <th className="text-left px-4 py-3">Character</th>
               <th className="text-left px-4 py-3">Role</th>
-              <th className="text-left px-4 py-3">Timezone</th>
+              <th className="text-left px-4 py-3">Wallet</th>
               <th className="text-left px-4 py-3">Joined</th>
               <th className="text-left px-4 py-3">Actions</th>
             </tr>
@@ -123,9 +152,15 @@ export default function Roster() {
           <tbody>
             {members.map((m) => (
               <tr key={m.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-hover)]">
-                <td className="px-4 py-3">{m.character_name || m.wallet_address}</td>
-                <td className={`px-4 py-3 capitalize ${ROLE_COLORS[m.role] || ''}`}>{m.role}</td>
-                <td className="px-4 py-3 text-[var(--color-text-dim)]">{m.timezone || '—'}</td>
+                <td className="px-4 py-3 font-medium">{m.character_name || 'Unknown'}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGES[m.role] || ''}`}>
+                    {m.role}
+                  </span>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-dim)]">
+                  {m.wallet_address.slice(0, 8)}...{m.wallet_address.slice(-4)}
+                </td>
                 <td className="px-4 py-3 text-[var(--color-text-dim)]">
                   {new Date(m.joined_at).toLocaleDateString()}
                 </td>
@@ -134,7 +169,7 @@ export default function Roster() {
                     <select
                       value={m.role}
                       onChange={(e) => updateRole(m.id, e.target.value)}
-                      className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text)]"
+                      className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-2 py-1 text-xs text-[var(--color-text)] cursor-pointer"
                     >
                       <option value="recruit">Recruit</option>
                       <option value="member">Member</option>

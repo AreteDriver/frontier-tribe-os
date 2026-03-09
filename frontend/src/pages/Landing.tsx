@@ -8,6 +8,12 @@ export default function Landing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Already logged in — redirect
+  if (localStorage.getItem('token')) {
+    navigate('/dashboard');
+    return null;
+  }
+
   const handleDevLogin = async () => {
     if (!name.trim()) {
       setError('Enter a character name');
@@ -29,11 +35,15 @@ export default function Landing() {
   };
 
   const handleSSOLogin = async () => {
+    setLoading(true);
+    setError('');
     try {
       const { data } = await api.get('/auth/login');
       window.location.href = data.authorize_url;
     } catch {
-      setError('SSO not available yet — use Dev Login');
+      setError('SSO not configured — use Dev Login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,7 +62,8 @@ export default function Landing() {
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
           <button
             onClick={handleSSOLogin}
-            className="w-full py-3 rounded-lg bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer"
+            disabled={loading}
+            className="w-full py-3 rounded-lg bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer disabled:opacity-50"
           >
             Login with EVE Frontier
           </button>
@@ -90,6 +101,10 @@ export default function Landing() {
             <p className="text-sm text-[var(--color-danger)] text-center">{error}</p>
           )}
         </div>
+
+        <p className="text-center text-xs text-[var(--color-text-dim)] mt-4">
+          EVE Frontier x Sui Hackathon 2026
+        </p>
       </div>
     </div>
   );

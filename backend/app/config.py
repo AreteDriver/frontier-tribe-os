@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # EVE Frontier SSO
     eve_frontier_client_id: str = ""
     eve_frontier_client_secret: str = ""
-    eve_frontier_callback_url: str = "http://localhost:8000/auth/callback"
+    eve_frontier_callback_url: str = "http://localhost:5173/auth/callback"
 
     # Sui
     sui_rpc_url: str = "https://fullnode.mainnet.sui.io:443"

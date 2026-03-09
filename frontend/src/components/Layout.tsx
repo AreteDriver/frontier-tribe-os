@@ -15,6 +15,7 @@ export default function Layout() {
     localStorage.removeItem('token');
     localStorage.removeItem('characterName');
     localStorage.removeItem('walletAddress');
+    localStorage.removeItem('tribeId');
     navigate('/');
   };
 
