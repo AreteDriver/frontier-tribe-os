@@ -112,7 +112,7 @@ export default function Production() {
 
       {/* Create job form */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4">
-        <div className="flex gap-3 items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <label className="block text-xs text-[var(--color-text-dim)] mb-1">Blueprint</label>
             <input
@@ -150,7 +150,7 @@ export default function Production() {
           <span className="text-[var(--color-text-dim)]">Loading jobs...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {STATUS_COLUMNS.map((status) => (
             <div key={status} className="space-y-3">
               <h3 className="text-sm font-semibold uppercase text-[var(--color-text-dim)] flex items-center gap-2">

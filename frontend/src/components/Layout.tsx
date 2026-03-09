@@ -21,12 +21,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--color-border)] px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+      <header className="border-b border-[var(--color-border)] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-4 sm:gap-8">
           <h1 className="text-lg font-bold text-[var(--color-primary)]">
             Tribe OS
           </h1>
-          <nav className="flex gap-4">
+          <nav className="flex gap-2 sm:gap-4 flex-wrap">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -54,7 +54,7 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 sm:p-6">
         <Outlet />
       </main>
     </div>

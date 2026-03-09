@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResult, setSyncResult] = useState('');
   const [error, setError] = useState('');
   const [joinSuccess, setJoinSuccess] = useState('');
   const characterName = localStorage.getItem('characterName') || 'Pilot';
@@ -84,6 +86,22 @@ export default function Dashboard() {
     }
   };
 
+  const syncWorldApi = async () => {
+    if (!tribe) return;
+    setSyncLoading(true);
+    setSyncResult('');
+    setError('');
+    try {
+      const { data } = await api.post(`/census/sync/tribes/${tribe.id}/members`);
+      setSyncResult(`Synced: ${data.synced ?? 0} members updated from World API`);
+      loadTribe();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'World API sync failed');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto flex items-center justify-center py-12">
@@ -128,9 +146,16 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
+            <button
+              onClick={syncWorldApi}
+              disabled={syncLoading}
+              className="w-full py-2 rounded border border-[var(--color-border)] text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {syncLoading ? 'Syncing...' : 'Sync from World API'}
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/roster')}
               className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
@@ -161,7 +186,7 @@ export default function Dashboard() {
         <div className="space-y-6">
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-3">
             <h3 className="text-lg font-semibold">Create a Tribe</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 placeholder="Tribe name"
@@ -176,7 +201,7 @@ export default function Dashboard() {
                 maxLength={10}
                 value={tribeShort}
                 onChange={(e) => setTribeShort(e.target.value.toUpperCase())}
-                className="w-32 px-4 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
+                className="sm:w-32 px-4 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
               />
               <button
                 onClick={createTribe}
@@ -190,7 +215,7 @@ export default function Dashboard() {
 
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-3">
             <h3 className="text-lg font-semibold">Join a Tribe</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 placeholder="Paste invite code"
@@ -211,9 +236,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {joinSuccess && (
+      {(joinSuccess || syncResult) && (
         <div className="bg-green-900/20 border border-green-800/30 rounded-lg p-3 text-sm text-green-400">
-          {joinSuccess}
+          {joinSuccess || syncResult}
         </div>
       )}
 

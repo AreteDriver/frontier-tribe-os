@@ -138,8 +138,8 @@ export default function Roster() {
         </div>
       )}
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-[var(--color-border)] text-[var(--color-text-dim)]">
               <th className="text-left px-4 py-3">Character</th>
