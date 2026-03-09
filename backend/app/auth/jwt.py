@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 
 from app.config import settings
 
@@ -11,7 +12,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         expires_delta or timedelta(minutes=settings.jwt_expire_minutes)
     )
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)  # type: ignore[arg-type]
 
 
 def decode_access_token(token: str) -> dict | None:
@@ -20,5 +21,5 @@ def decode_access_token(token: str) -> dict | None:
             token, settings.secret_key, algorithms=[settings.jwt_algorithm]
         )
         return payload
-    except JWTError:
+    except PyJWTError:
         return None
