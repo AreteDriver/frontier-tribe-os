@@ -162,11 +162,6 @@ async def handle_join_request(
     if member.tribe_id != tribe_id:
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
 
-    if body.action not in ("approve", "deny"):
-        raise HTTPException(
-            status_code=400, detail="Action must be 'approve' or 'deny'"
-        )
-
     join_req = await db.get(JoinRequest, request_id)
     if not join_req or join_req.tribe_id != tribe_id:
         raise HTTPException(status_code=404, detail="Join request not found")
@@ -209,11 +204,6 @@ async def update_member_role(
 ):
     if member.tribe_id != tribe_id:
         raise HTTPException(status_code=403, detail="Not a member of this tribe")
-
-    if body.role not in VALID_ROLES:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid role. Must be one of: {VALID_ROLES}"
-        )
 
     # Only leaders can promote to officer
     if body.role == "officer" and member.role != "leader":

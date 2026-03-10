@@ -47,7 +47,20 @@ export default function Dashboard() {
   };
 
   const createTribe = async () => {
-    if (!tribeName.trim()) return;
+    const trimmedName = tribeName.trim();
+    if (!trimmedName) return;
+    if (trimmedName.length > 100) {
+      setError('Tribe name too long (max 100 characters)');
+      return;
+    }
+    if (!/^[a-zA-Z0-9\s\-']+$/.test(trimmedName)) {
+      setError('Tribe name contains invalid characters');
+      return;
+    }
+    if (tribeShort && !/^[A-Z0-9]{1,10}$/.test(tribeShort)) {
+      setError('Tag must be 1-10 uppercase letters/numbers');
+      return;
+    }
     setActionLoading(true);
     setError('');
     try {
@@ -65,7 +78,12 @@ export default function Dashboard() {
   };
 
   const joinTribe = async () => {
-    if (!inviteCode.trim()) return;
+    const trimmedCode = inviteCode.trim();
+    if (!trimmedCode) return;
+    if (trimmedCode.length > 100) {
+      setError('Invite code too long');
+      return;
+    }
     setActionLoading(true);
     setError('');
     setJoinSuccess('');

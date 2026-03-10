@@ -51,7 +51,16 @@ export default function Production() {
   };
 
   const createJob = async () => {
-    if (!newJobName.trim() || !tribeId) return;
+    const trimmedName = newJobName.trim();
+    if (!trimmedName || !tribeId) return;
+    if (trimmedName.length > 200) {
+      setError('Blueprint name too long (max 200 characters)');
+      return;
+    }
+    if (newJobQty < 1 || newJobQty > 10000 || !Number.isInteger(newJobQty)) {
+      setError('Quantity must be a whole number between 1 and 10,000');
+      return;
+    }
     setError('');
     try {
       await api.post(`/forge/tribes/${tribeId}/jobs`, {

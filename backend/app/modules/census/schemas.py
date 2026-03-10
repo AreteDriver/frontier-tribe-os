@@ -1,12 +1,13 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TribeCreate(BaseModel):
-    name: str
-    name_short: str | None = None
+    name: str = Field(..., min_length=1, max_length=100)
+    name_short: str | None = Field(None, max_length=10)
 
 
 class TribeResponse(BaseModel):
@@ -33,7 +34,7 @@ class MemberResponse(BaseModel):
 
 
 class RoleUpdate(BaseModel):
-    role: str
+    role: Literal["leader", "officer", "member", "recruit"]
 
 
 class JoinRequestResponse(BaseModel):
@@ -47,4 +48,4 @@ class JoinRequestResponse(BaseModel):
 
 
 class JoinRequestAction(BaseModel):
-    action: str  # "approve" or "deny"
+    action: Literal["approve", "deny"]

@@ -15,8 +15,17 @@ export default function Landing() {
   }
 
   const handleDevLogin = async () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       setError('Enter a character name');
+      return;
+    }
+    if (trimmed.length > 100) {
+      setError('Character name too long (max 100 characters)');
+      return;
+    }
+    if (!/^[a-zA-Z0-9\s\-']+$/.test(trimmed)) {
+      setError('Character name contains invalid characters');
       return;
     }
     setLoading(true);

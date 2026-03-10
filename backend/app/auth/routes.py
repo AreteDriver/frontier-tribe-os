@@ -45,8 +45,8 @@ async def callback(
     try:
         token_data = await exchange_code(code)
         user_info = await get_userinfo(token_data["access_token"])
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"SSO verification failed: {e}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="SSO verification failed")
 
     # FusionAuth userinfo returns sub (user ID), email, preferred_username, etc.
     # The wallet address is derived via zkLogin — for now use sub as identity

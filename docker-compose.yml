@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: tribeuser
-      POSTGRES_PASSWORD: tribepass
-      POSTGRES_DB: tribedb
+      POSTGRES_USER: ${POSTGRES_USER:-tribeuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required — set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-tribedb}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tribeuser -d tribedb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tribeuser} -d ${POSTGRES_DB:-tribedb}"]
       interval: 5s
       timeout: 3s
       retries: 5

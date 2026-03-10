@@ -1,14 +1,36 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.auth.routes import router as auth_router
+from app.config import settings
 from app.db.models import Base
 from app.db.session import engine
 from app.modules.census.routes import router as census_router
 from app.modules.forge.routes import router as forge_router
 from app.modules.ledger.routes import router as ledger_router
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject CSP and security headers on every response."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https://images.evetech.net; "
+            "connect-src 'self' https://esi.evetech.net https://fullnode.mainnet.sui.io; "
+            "object-src 'none'; "
+            "frame-ancestors 'none'"
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
 
 
 @asynccontextmanager
@@ -27,17 +49,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://frontier-tribe-os.fly.dev",
-        "https://frontend-ten-theta-80.vercel.app",
-    ],
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(auth_router)

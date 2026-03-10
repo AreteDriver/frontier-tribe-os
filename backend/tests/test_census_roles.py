@@ -61,8 +61,7 @@ async def test_update_role_invalid_role_rejected(
         json={"role": "emperor"},
         headers=leader_headers,
     )
-    assert resp.status_code == 400
-    assert "Invalid role" in resp.json()["detail"]
+    assert resp.status_code == 422  # Pydantic rejects invalid Literal value
 
 
 async def test_cannot_demote_leader(client, tribe_with_leader, second_auth_headers):
