@@ -155,6 +155,11 @@ export default function Production() {
       )}
 
       {/* Gap Analysis Panel */}
+      {gapAnalysis && gapAnalysis.total_jobs > 0 && gapAnalysis.material_gaps.length === 0 && (
+        <div className="border border-dashed border-green-800/30 rounded-lg p-3 text-center">
+          <p className="text-sm text-green-400/70">All jobs have materials ready. No gaps detected.</p>
+        </div>
+      )}
       {gapAnalysis && gapAnalysis.material_gaps.length > 0 && (
         <div className="bg-[var(--color-surface)] border border-amber-800/30 rounded-lg p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
@@ -196,14 +201,17 @@ export default function Production() {
                 ))}
               </select>
             ) : (
-              <input
-                type="text"
-                placeholder="e.g. Fighter Ship"
-                value={newJobName}
-                onChange={(e) => setNewJobName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && createJob()}
-                className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
-              />
+              <>
+                <input
+                  type="text"
+                  placeholder="e.g. Fighter Ship"
+                  value={newJobName}
+                  onChange={(e) => setNewJobName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && createJob()}
+                  className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
+                />
+                <p className="text-[10px] text-[var(--color-text-dim)] mt-1">No blueprints loaded. Type a custom name to create a job.</p>
+              </>
             )}
           </div>
           {blueprints.length > 0 && (
@@ -296,6 +304,16 @@ export default function Production() {
                 {status.replace('_', ' ')} ({jobsByStatus(status).length})
               </h3>
               <div className="space-y-2 min-h-[200px]">
+                {jobsByStatus(status).length === 0 && (
+                  <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center min-h-[80px] flex items-center justify-center">
+                    <p className="text-xs text-[var(--color-text-dim)]">
+                      {status === 'queued' ? 'No queued jobs. Add one above.' :
+                       status === 'in_progress' ? 'Nothing in progress.' :
+                       status === 'blocked' ? 'No blocked jobs.' :
+                       'No completed jobs yet.'}
+                    </p>
+                  </div>
+                )}
                 {jobsByStatus(status).map((job) => (
                   <div
                     key={job.id}

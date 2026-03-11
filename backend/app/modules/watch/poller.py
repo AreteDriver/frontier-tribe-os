@@ -124,8 +124,10 @@ class WorldAPIPoller:
             killmails = data.get("data", data) if isinstance(data, dict) else data
 
             for km in killmails:
-                killer = km.get("killerAddress", "unknown")
-                victim = km.get("victimAddress", "unknown")
+                killer_obj = km.get("killer", {})
+                victim_obj = km.get("victim", {})
+                killer = killer_obj.get("name") or killer_obj.get("address", "unknown")
+                victim = victim_obj.get("name") or victim_obj.get("address", "unknown")
                 km_id = km.get("id", "?")
                 logger.info("killmail id=%s killer=%s victim=%s", km_id, killer, victim)
             logger.info("sync_killmails: processed %d killmails", len(killmails))
@@ -144,7 +146,7 @@ class WorldAPIPoller:
 
             counts: dict[str, int] = {}
             for a in assemblies:
-                a_type = a.get("assemblyType", "Unknown")
+                a_type = a.get("type", "Unknown")
                 counts[a_type] = counts.get(a_type, 0) + 1
 
             logger.info("sync_assemblies: %s", counts)

@@ -51,10 +51,18 @@ class Settings(BaseSettings):
         ):
             missing.append("SECRET_KEY")
         if self.environment != "development":
+            sso_missing = []
             if not self.eve_frontier_client_id:
-                missing.append("EVE_FRONTIER_CLIENT_ID")
+                sso_missing.append("EVE_FRONTIER_CLIENT_ID")
             if not self.eve_frontier_client_secret:
-                missing.append("EVE_FRONTIER_CLIENT_SECRET")
+                sso_missing.append("EVE_FRONTIER_CLIENT_SECRET")
+            if sso_missing:
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "SSO credentials not set: %s. OAuth login disabled, dev-login still available.",
+                    ", ".join(sso_missing),
+                )
         if missing:
             raise ValueError(
                 f"Missing required environment variables: {', '.join(missing)}. "

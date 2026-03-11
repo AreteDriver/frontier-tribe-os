@@ -113,7 +113,7 @@ export default function Roster() {
         </div>
       )}
 
-      {requests.length > 0 && (
+      {requests.length > 0 ? (
         <div className="bg-[var(--color-surface)] border border-[var(--color-warning)]/50 rounded-lg p-3 sm:p-4 space-y-3">
           <h3 className="text-sm font-semibold text-[var(--color-warning)]">
             Pending Requests ({requests.length})
@@ -142,6 +142,10 @@ export default function Roster() {
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
+          <p className="text-sm text-[var(--color-text-dim)]">No pending join requests. Share the tribe invite code to recruit new members.</p>
         </div>
       )}
 
@@ -200,7 +204,15 @@ export default function Roster() {
           </tbody>
         </table>
         {members.length === 0 && (
-          <p className="px-4 py-8 text-center text-[var(--color-text-dim)]">No members yet</p>
+          <div className="px-4 py-10 text-center border-t border-dashed border-[var(--color-border)]">
+            <p className="text-sm text-[var(--color-text-dim)]">No members in this tribe yet.</p>
+            <p className="text-xs text-[var(--color-text-dim)] mt-1">Share the invite code from the Dashboard to start building your roster.</p>
+          </div>
+        )}
+        {members.length === 1 && (
+          <div className="px-4 py-3 text-center border-t border-dashed border-[var(--color-border)]">
+            <p className="text-xs text-[var(--color-text-dim)]">You are the only member. Invite others using the tribe invite code.</p>
+          </div>
         )}
       </div>
     </div>

@@ -62,18 +62,30 @@ def tribe_api_data():
 @pytest.fixture
 def killmail_api_data():
     return [
-        {"id": 1, "killerAddress": "0xkiller1", "victimAddress": "0xvictim1"},
-        {"id": 2, "killerAddress": "0xkiller2", "victimAddress": "0xvictim2"},
+        {
+            "id": 1,
+            "killer": {"address": "0xkiller1", "name": "Killer One", "id": "100"},
+            "victim": {"address": "0xvictim1", "name": "Victim One", "id": "200"},
+            "solarSystemId": 30023604,
+            "time": "2025-12-10T16:20:58Z",
+        },
+        {
+            "id": 2,
+            "killer": {"address": "0xkiller2", "name": "Killer Two", "id": "101"},
+            "victim": {"address": "0xvictim2", "name": "Victim Two", "id": "201"},
+            "solarSystemId": 30023605,
+            "time": "2025-12-10T17:00:00Z",
+        },
     ]
 
 
 @pytest.fixture
 def assembly_api_data():
     return [
-        {"id": "a1", "assemblyType": "SmartGate"},
-        {"id": "a2", "assemblyType": "SmartGate"},
-        {"id": "a3", "assemblyType": "SmartTurret"},
-        {"id": "a4", "assemblyType": "SmartStorageUnit"},
+        {"id": "a1", "type": "SmartGate"},
+        {"id": "a2", "type": "SmartGate"},
+        {"id": "a3", "type": "SmartTurret"},
+        {"id": "a4", "type": "SmartStorageUnit"},
     ]
 
 

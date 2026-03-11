@@ -214,7 +214,7 @@ export default function Watch() {
           <div className="text-2xl font-bold text-[var(--color-primary)]">{scans.length}</div>
           <div className="text-xs text-[var(--color-text-dim)]">Recent Scans</div>
         </div>
-        {clones && (
+        {clones ? (
           <div className={`bg-[var(--color-surface)] border rounded-lg p-4 text-center ${clones.low_reserve ? 'border-red-800/50' : 'border-[var(--color-border)]'}`}>
             <div className={`text-2xl font-bold ${clones.low_reserve ? 'text-red-400' : 'text-[var(--color-primary)]'}`}>
               {clones.total_active}
@@ -222,19 +222,29 @@ export default function Watch() {
             <div className="text-xs text-[var(--color-text-dim)]">Active Clones</div>
             {clones.low_reserve && <div className="text-[10px] text-red-400 mt-1">LOW RESERVE</div>}
           </div>
+        ) : tribeId && (
+          <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-sm text-[var(--color-text-dim)]">--</div>
+            <div className="text-xs text-[var(--color-text-dim)]">Clones</div>
+          </div>
         )}
-        {crowns && (
+        {crowns ? (
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-[var(--color-primary)]">
               {crowns.members_with_crowns}/{crowns.total_members}
             </div>
             <div className="text-xs text-[var(--color-text-dim)]">Crowned</div>
           </div>
+        ) : tribeId && (
+          <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-sm text-[var(--color-text-dim)]">--</div>
+            <div className="text-xs text-[var(--color-text-dim)]">Crowns</div>
+          </div>
         )}
       </div>
 
       {/* Blind Spots Alert */}
-      {blindSpots.length > 0 && (
+      {blindSpots.length > 0 ? (
         <div className="bg-yellow-900/10 border border-yellow-800/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <span className="text-yellow-400 text-sm font-semibold shrink-0">BLIND SPOTS</span>
           <div className="flex gap-2 flex-wrap">
@@ -245,6 +255,10 @@ export default function Watch() {
             ))}
           </div>
         </div>
+      ) : zones.length > 0 && (
+        <div className="border border-dashed border-green-800/30 rounded-lg p-3 text-center">
+          <p className="text-sm text-green-400/70">No blind spots. All zones have recent scans.</p>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -253,8 +267,9 @@ export default function Watch() {
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] uppercase tracking-wider">Orbital Zones</h3>
 
           {zones.length === 0 ? (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-8 text-center">
-              <p className="text-[var(--color-text-dim)] text-sm mb-4">No zones tracked yet. Add your first zone.</p>
+            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-8 text-center">
+              <p className="text-sm text-[var(--color-text-dim)]">No orbital zones tracked yet.</p>
+              <p className="text-xs text-[var(--color-text-dim)] mt-2">Add your first zone below to start monitoring C5 space.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -404,7 +419,10 @@ export default function Watch() {
           {/* Scan Results */}
           <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
             {scans.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-dim)] text-center py-4">No scans yet</p>
+              <div className="border border-dashed border-[var(--color-border)] rounded-lg p-6 text-center">
+                <p className="text-sm text-[var(--color-text-dim)]">No scan results yet.</p>
+                <p className="text-xs text-[var(--color-text-dim)] mt-1">{zones.length > 0 ? 'Submit a scan above to log intel.' : 'Add a zone first, then submit scans.'}</p>
+              </div>
             ) : (
               scans.map((s) => {
                 const zone = zones.find((z) => z.id === s.zone_id);
@@ -470,6 +488,11 @@ export default function Watch() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+          {crowns && crowns.members_without_crowns > 0 && Object.keys(crowns.crown_type_distribution).length === 0 && (
+            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-3 text-center">
+              <p className="text-xs text-[var(--color-text-dim)]">No crowns distributed yet.</p>
             </div>
           )}
         </div>

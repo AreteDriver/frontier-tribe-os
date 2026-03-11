@@ -194,6 +194,7 @@ export default function Dashboard() {
                 </span>
               )}
             </div>
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-[var(--color-text-dim)]">Members</span>
@@ -253,6 +254,17 @@ export default function Dashboard() {
           </div>
 
           {/* Material Gaps Alert */}
+          {gapAnalysis && gapAnalysis.total_jobs === 0 && (
+            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
+              <p className="text-sm text-[var(--color-text-dim)]">No active production jobs.</p>
+              <button
+                onClick={() => navigate('/production')}
+                className="mt-2 text-xs text-[var(--color-primary)] hover:underline cursor-pointer"
+              >
+                Create your first job in the Forge
+              </button>
+            </div>
+          )}
           {gapAnalysis && gapAnalysis.material_gaps.length > 0 && (
             <div className="bg-[var(--color-surface)] border border-amber-800/30 rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -276,7 +288,7 @@ export default function Dashboard() {
           )}
 
           {/* Blind Spots Alert */}
-          {blindSpots && blindSpots.count > 0 && (
+          {blindSpots && blindSpots.count > 0 ? (
             <div className="bg-[var(--color-surface)] border border-yellow-800/30 rounded-lg p-4 space-y-2">
               <h3 className="text-sm font-semibold text-yellow-400">
                 Blind Spots ({blindSpots.count})
@@ -289,6 +301,16 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          ) : blindSpots && blindSpots.count === 0 && (
+            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
+              <p className="text-sm text-[var(--color-text-dim)]">All clear — no blind spots detected.</p>
+              <button
+                onClick={() => navigate('/watch')}
+                className="mt-2 text-xs text-[var(--color-primary)] hover:underline cursor-pointer"
+              >
+                Open Watch to track zones
+              </button>
             </div>
           )}
 
@@ -330,6 +352,9 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-6">
+          <div className="border border-dashed border-[var(--color-border)] rounded-lg p-6 text-center mb-2">
+            <p className="text-[var(--color-text-dim)] text-sm">You are not part of a tribe yet. Create a new one or join an existing tribe with an invite code.</p>
+          </div>
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6 space-y-3">
             <h3 className="text-lg font-semibold">Create a Tribe</h3>
             <div className="flex flex-col sm:flex-row gap-3">

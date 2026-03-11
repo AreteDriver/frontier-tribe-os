@@ -158,7 +158,10 @@ export default function Treasury() {
                 {truncateAddress(summary.treasury_address)}
               </p>
               {summary.treasury_balances.length === 0 ? (
-                <p className="text-[var(--color-text-dim)] text-sm">No balances</p>
+                <div className="border border-dashed border-[var(--color-border)] rounded p-3 text-center">
+                  <p className="text-[var(--color-text-dim)] text-sm">Treasury has zero balance.</p>
+                  <p className="text-[var(--color-text-dim)] text-xs mt-1">Deposit SUI to the treasury address to get started.</p>
+                </div>
               ) : (
                 summary.treasury_balances.map((b, i) => (
                   <div key={i} className="flex justify-between items-baseline mb-1">
@@ -184,7 +187,9 @@ export default function Treasury() {
                 {truncateAddress(myBalances.address)}
               </p>
               {myBalances.balances.length === 0 ? (
-                <p className="text-[var(--color-text-dim)] text-sm">No balances</p>
+                <div className="border border-dashed border-[var(--color-border)] rounded p-3 text-center">
+                  <p className="text-[var(--color-text-dim)] text-sm">Wallet is empty.</p>
+                </div>
               ) : (
                 myBalances.balances.map((b, i) => (
                   <div key={i} className="flex justify-between items-baseline mb-1">
@@ -197,12 +202,20 @@ export default function Treasury() {
           ) : loading ? (
             <p className="text-sm text-[var(--color-text-dim)]">Loading...</p>
           ) : (
-            <p className="text-sm text-[var(--color-text-dim)]">—</p>
+            <div className="border border-dashed border-[var(--color-border)] rounded p-3 text-center">
+            <p className="text-sm text-[var(--color-text-dim)]">Connect a wallet to view your balance.</p>
+          </div>
           )}
         </div>
       </div>
 
       {/* Member Balances */}
+      {summary && summary.members_with_balances.length === 0 && (
+        <div className="border border-dashed border-[var(--color-border)] rounded-lg p-6 text-center">
+          <p className="text-sm text-[var(--color-text-dim)]">No member wallets tracked yet.</p>
+          <p className="text-xs text-[var(--color-text-dim)] mt-1">Member balances will appear here once wallets are linked.</p>
+        </div>
+      )}
       {summary && summary.members_with_balances.length > 0 && (
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-4">Member Wallets</h3>
@@ -233,7 +246,10 @@ export default function Treasury() {
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
         <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-4">Transaction History</h3>
         {transactions.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-dim)]">No transactions recorded yet.</p>
+          <div className="border border-dashed border-[var(--color-border)] rounded p-6 text-center">
+            <p className="text-sm text-[var(--color-text-dim)]">No transactions recorded yet.</p>
+            <p className="text-xs text-[var(--color-text-dim)] mt-1">Transactions between tribe members and the treasury will appear here.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
             <table className="w-full text-sm min-w-[600px]">
