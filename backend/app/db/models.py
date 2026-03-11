@@ -196,9 +196,9 @@ class OrbitalZone(Base):
         String(100), unique=True, nullable=False
     )  # World API zone identifier
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    coordinates: Mapped[str | None] = mapped_column(
+    coordinates_hash: Mapped[str | None] = mapped_column(
         String(255)
-    )  # HIDDEN POST-CYCLE — stored but not exposed
+    )  # On-chain location is hashed (location obfuscation, C5+)
     feral_ai_tier: Mapped[int] = mapped_column(Integer, default=0)  # 0-4
     last_scanned: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)

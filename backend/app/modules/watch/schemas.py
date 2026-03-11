@@ -35,7 +35,7 @@ class OrbitalZoneResponse(BaseModel):
 class OrbitalZoneCreate(BaseModel):
     zone_id: str
     name: str
-    coordinates: str | None = None
+    coordinates_hash: str | None = None  # On-chain hashed location
     feral_ai_tier: int = 0
 
 

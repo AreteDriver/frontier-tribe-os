@@ -74,6 +74,25 @@ Auth is built on **Sui blockchain zkLogin** via **EVE Vault** (Chrome extension 
 - Read Sui on-chain token balances directly via Sui SDK (not World API)
 - Use wallet address from smart character data
 
+## C5 Changes (March 2026)
+
+### Chain Migration: Ethereum → Sui
+EVE Frontier moved from Ethereum to Sui blockchain. All on-chain data now uses
+Sui addresses and transaction formats. Our Sui SDK integration is correct.
+
+### Location Obfuscation
+Structure locations are now **hidden on-chain by default** — only readable as a
+hash. This means:
+- `coordinates` fields store hashes, not plaintext x/y/z
+- Raw positions are NOT available from chain reads
+- Future: "selective data secrecy, information trading" — potential API for
+  authorized coordinate reveals
+- Our `OrbitalZone.coordinates_hash` field reflects this
+
+**Impact on Tribe OS**: We cannot build a map from on-chain data alone.
+Zone names and threat levels are still useful. If CCP releases a coordinate
+reveal API, we can integrate it later.
+
 ## Static Data Fallback
 
 If World API is unavailable, load from `backend/data/blueprints.json`.

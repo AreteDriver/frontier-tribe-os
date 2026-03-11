@@ -144,7 +144,7 @@ async def create_orbital_zone(
     zone = OrbitalZone(
         zone_id=body.zone_id,
         name=body.name,
-        coordinates=body.coordinates,
+        coordinates_hash=body.coordinates_hash,
         feral_ai_tier=body.feral_ai_tier,
     )
     db.add(zone)
