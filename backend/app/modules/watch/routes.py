@@ -23,16 +23,22 @@ from app.db.session import get_db
 from app.notifications.notifier import DiscordNotifier
 
 from .schemas import (
+    ActiveScannerEntry,
     CloneQueueResponse,
     CloneResponse,
     CrownResponse,
     CrownRosterResponse,
     CycleResponse,
     FeralAIEventResponse,
+    HotspotEntry,
+    HotspotResponse,
+    HourlyScanCount,
     OrbitalZoneCreate,
     OrbitalZoneResponse,
     ScanCreate,
     ScanResponse,
+    ThreatHistoryEntry,
+    ZoneActivityResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -366,6 +372,180 @@ async def crown_roster(
         members_without_crowns=member_count - len(members_with),
         crown_type_distribution=distribution,
         crowns=[CrownResponse.model_validate(c) for c in crowns],
+    )
+
+
+# --- System Intelligence ---
+
+
+@router.get("/systems/hotspots", response_model=HotspotResponse)
+async def system_hotspots(
+    member: Member = Depends(get_current_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Top 20 most active zones by scan count in last 24h."""
+    now = datetime.now(timezone.utc)
+    cutoff_24h = now - timedelta(hours=24)
+    cutoff_12h = now - timedelta(hours=12)
+
+    # Get all zones
+    zones_result = await db.execute(
+        select(OrbitalZone).where(OrbitalZone.cycle == CURRENT_CYCLE)
+    )
+    zones = zones_result.scalars().all()
+
+    hotspots: list[HotspotEntry] = []
+    for zone in zones:
+        # Count scans in last 24h
+        count_24h = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Scan)
+                .where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= cutoff_24h,
+                )
+            )
+        ) or 0
+
+        # Trend: compare last 12h vs prior 12h
+        count_recent_12h = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Scan)
+                .where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= cutoff_12h,
+                )
+            )
+        ) or 0
+        count_prior_12h = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Scan)
+                .where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= cutoff_24h,
+                    Scan.scanned_at < cutoff_12h,
+                )
+            )
+        ) or 0
+
+        if count_recent_12h > count_prior_12h:
+            trend = "UP"
+        elif count_recent_12h < count_prior_12h:
+            trend = "DOWN"
+        else:
+            trend = "FLAT"
+
+        hotspots.append(
+            HotspotEntry(
+                zone_id=zone.zone_id,
+                name=zone.name,
+                scan_count_24h=count_24h,
+                threat_level=_threat_level(zone.feral_ai_tier),
+                feral_ai_tier=zone.feral_ai_tier,
+                last_scanned=zone.last_scanned,
+                trend=trend,
+            )
+        )
+
+    # Sort by scan count descending, take top 20
+    hotspots.sort(key=lambda h: h.scan_count_24h, reverse=True)
+    return HotspotResponse(hotspots=hotspots[:20], generated_at=now)
+
+
+@router.get("/systems/{zone_id}/activity", response_model=ZoneActivityResponse)
+async def system_activity(
+    zone_id: str,
+    member: Member = Depends(get_current_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Activity timeline for a single zone."""
+    zone = await db.scalar(select(OrbitalZone).where(OrbitalZone.zone_id == zone_id))
+    if not zone:
+        raise HTTPException(status_code=404, detail="Zone not found")
+
+    now = datetime.now(timezone.utc)
+    cutoff_24h = now - timedelta(hours=24)
+
+    # Hourly scan counts for last 24h
+    hourly_scans: list[HourlyScanCount] = []
+    for i in range(24):
+        hour_start = now - timedelta(hours=24 - i)
+        hour_end = now - timedelta(hours=23 - i)
+        count = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Scan)
+                .where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= hour_start,
+                    Scan.scanned_at < hour_end,
+                )
+            )
+        ) or 0
+        hourly_scans.append(
+            HourlyScanCount(
+                hour=hour_start.strftime("%H:%M"),
+                count=count,
+            )
+        )
+
+    # Threat history from feral AI events
+    events_result = await db.execute(
+        select(FeralAIEvent)
+        .where(FeralAIEvent.zone_id == zone.id)
+        .order_by(FeralAIEvent.timestamp.asc())
+        .limit(100)
+    )
+    threat_history = [
+        ThreatHistoryEntry(
+            timestamp=e.timestamp.isoformat(),
+            tier=e.new_tier if e.new_tier is not None else e.severity,
+        )
+        for e in events_result.scalars().all()
+    ]
+
+    # Recent scans (last 20)
+    scans_result = await db.execute(
+        select(Scan)
+        .where(Scan.zone_id == zone.id)
+        .order_by(Scan.scanned_at.desc())
+        .limit(20)
+    )
+    recent_scans = [_scan_to_response(s) for s in scans_result.scalars().all()]
+
+    # Active scanners
+    scanner_rows = (
+        await db.execute(
+            select(Scan.scanner_id, func.count().label("scan_count"))
+            .where(
+                Scan.zone_id == zone.id,
+                Scan.scanned_at >= cutoff_24h,
+                Scan.scanner_id.isnot(None),
+            )
+            .group_by(Scan.scanner_id)
+            .order_by(func.count().desc())
+            .limit(10)
+        )
+    ).all()
+
+    active_scanners = [
+        ActiveScannerEntry(
+            scanner_id=str(row[0]),
+            scan_count=row[1],
+        )
+        for row in scanner_rows
+    ]
+
+    return ZoneActivityResponse(
+        zone_id=zone.zone_id,
+        name=zone.name,
+        hourly_scans=hourly_scans,
+        threat_history=threat_history,
+        recent_scans=recent_scans,
+        active_scanners=active_scanners,
     )
 
 

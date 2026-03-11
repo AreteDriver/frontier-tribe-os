@@ -7,6 +7,9 @@ import Roster from './pages/Roster';
 import Production from './pages/Production';
 import Treasury from './pages/Treasury';
 import Watch from './pages/Watch';
+import KillFeed from './pages/KillFeed';
+import Alerts from './pages/Alerts';
+import Systems from './pages/Systems';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -34,6 +37,9 @@ function App() {
           <Route path="/production" element={<Production />} />
           <Route path="/treasury" element={<Treasury />} />
           <Route path="/watch" element={<Watch />} />
+          <Route path="/intel" element={<KillFeed />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/systems" element={<Systems />} />
         </Route>
       </Routes>
     </BrowserRouter>

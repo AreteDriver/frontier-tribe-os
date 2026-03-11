@@ -5,13 +5,15 @@ World API and upserts local records / logs relevant events.
 """
 
 import asyncio
+import json
 import logging
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Tribe
+from app.db.models import Killmail, Tribe
 from app.db.session import async_session
 
 logger = logging.getLogger(__name__)
@@ -116,25 +118,59 @@ class WorldAPIPoller:
         return 1
 
     async def _sync_killmails(self, client: httpx.AsyncClient):
-        """Fetch recent killmails and log them for awareness / Discord alerts."""
+        """Fetch recent killmails and persist to DB. Upsert by kill_id."""
         try:
             resp = await client.get("/v2/killmails", params={"limit": 50})
             resp.raise_for_status()
             data = resp.json()
             killmails = data.get("data", data) if isinstance(data, dict) else data
 
-            for km in killmails:
-                killer_obj = km.get("killer", {})
-                victim_obj = km.get("victim", {})
-                killer = killer_obj.get("name") or killer_obj.get("address", "unknown")
-                victim = victim_obj.get("name") or victim_obj.get("address", "unknown")
-                km_id = km.get("id", "?")
-                logger.info("killmail id=%s killer=%s victim=%s", km_id, killer, victim)
-            logger.info("sync_killmails: processed %d killmails", len(killmails))
+            async with async_session() as db:
+                inserted = 0
+                for km in killmails:
+                    km_id = km.get("id")
+                    if km_id is None:
+                        continue
+                    inserted += await self._upsert_killmail(db, km, km_id)
+                await db.commit()
+                logger.info(
+                    "sync_killmails: inserted %d/%d killmails",
+                    inserted,
+                    len(killmails),
+                )
         except httpx.HTTPError as e:
             logger.warning("sync_killmails failed: %s", e)
         except Exception:
             logger.exception("sync_killmails unexpected error")
+
+    async def _upsert_killmail(self, db: AsyncSession, data: dict, km_id: int) -> int:
+        """Upsert a single killmail. Returns 1 if inserted, 0 if skipped."""
+        result = await db.execute(select(Killmail).where(Killmail.kill_id == km_id))
+        if result.scalar_one_or_none() is not None:
+            return 0  # Already exists
+
+        killer_obj = data.get("killer", {})
+        victim_obj = data.get("victim", {})
+
+        # Parse timestamp
+        time_str = data.get("time", "")
+        try:
+            ts = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            ts = datetime.now(timezone.utc)
+
+        killmail = Killmail(
+            kill_id=km_id,
+            victim_address=victim_obj.get("address", "0x0"),
+            victim_name=victim_obj.get("name"),
+            killer_address=killer_obj.get("address", "0x0"),
+            killer_name=killer_obj.get("name"),
+            solar_system_id=data.get("solarSystemId"),
+            timestamp=ts,
+            raw_json=json.dumps(data),
+        )
+        db.add(killmail)
+        return 1
 
     async def _sync_assemblies(self, client: httpx.AsyncClient):
         """Fetch smart assemblies and log counts by type."""

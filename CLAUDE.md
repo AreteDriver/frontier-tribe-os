@@ -41,6 +41,7 @@ frontier-tribe-os/
 - **Language**: Python, TypeScript, JavaScript, HTML, CSS
 - **Runtime**: Docker
 - **CI/CD**: GitHub Actions
+- **Charts**: recharts (frontend dependency for System Intelligence page)
 
 ## Coding Standards
 
@@ -96,6 +97,16 @@ frontier-tribe-os/
 
 ## Domain Context
 
+### Frontend Pages
+- `/dashboard` — Dashboard
+- `/roster` — Census (tribe members)
+- `/production` — Forge (production jobs)
+- `/treasury` — Ledger (treasury transactions)
+- `/watch` — Watch (C5 orbital zones, scans, clones, crowns)
+- `/intel` — Intel (kill feed)
+- `/alerts` — Alerts (Discord alert config)
+- `/systems` — Systems Intelligence (hotspot table + zone detail with recharts graphs)
+
 ### Key Models/Classes
 - `BalanceResponse`
 - `Base`
@@ -112,6 +123,11 @@ frontier-tribe-os/
 - `Member`
 - `MemberResponse`
 - `ProductionJob`
+- `Killmail`
+- `AlertConfig`
+- `KillmailResponse`
+- `KillmailStatsResponse`
+- `IntelBriefingService`
 
 ### Domain Terms
 - CD
@@ -122,8 +138,11 @@ frontier-tribe-os/
 - Frontier Tribe
 - Frontier Tribes
 - GET
+- Intel
 - JSON
 - JWT
+- Kill Feed
+- Killmail
 
 ### API Endpoints
 - `/callback`
@@ -144,6 +163,15 @@ frontier-tribe-os/
 - `/tribes/{tribe_id}/gap-analysis`
 - `/tribes/{tribe_id}/summary`
 - `/blueprints`
+- `/intel/killmails` — paginated kill feed, filterable by corp_name, system_id, since
+- `/intel/killmails/{kill_id}` — single killmail detail with raw JSON
+- `/intel/killmails/stats` — 24h/7d kill counts, hourly breakdown, top systems
+- `/intel/briefing` — LLM-powered intel briefing for a zone
+- `/intel/briefing/zones` — zones with enough data for briefing
+- `/alerts` — CRUD for Discord alert configs
+- `/alerts/{alert_id}/test` — send test alert to Discord webhook
+- `/watch/systems/hotspots` — Top 20 most active zones by scan count (24h), with trend (UP/DOWN/FLAT)
+- `/watch/systems/{zone_id}/activity` — Zone activity timeline: hourly scans, threat history, recent scans, active scanners
 
 ### Enums/Constants
 - `BASE_URL`
@@ -165,6 +193,17 @@ frontier-tribe-os/
 - `api-integration`
 - `full-stack-dev`
 - `website-builder`
+
+## LLM Integration (Intel Briefing)
+
+- **Service**: `app/modules/intel/briefing.py` — `IntelBriefingService` calls Anthropic API via httpx (no SDK dependency)
+- **Model**: `claude-haiku-4-5-20251001` for speed/cost
+- **Config**: `ANTHROPIC_API_KEY` env var (optional — returns mock brief if empty)
+- **Cache**: 15-minute in-memory dict cache per zone+hours_back key
+- **Endpoints**: `POST /intel/briefing`, `GET /intel/briefing/zones`
+- **Frontend**: `IntelBrief` component on Watch page — zone selector, generate button, cooldown timer, threat level badge
+- **System prompt**: EVE Frontier intelligence officer persona, military brevity, actionable FC briefs
+- **Fallback**: No API key = mock response with `threat_level: UNKNOWN`; API errors logged, never crash
 
 ## Git Conventions
 

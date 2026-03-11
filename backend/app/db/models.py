@@ -330,6 +330,63 @@ class CloneBlueprint(Base):
     manufacture_time_sec: Mapped[int] = mapped_column(Integer, default=3600)
 
 
+class Killmail(Base):
+    """Killmail from EVE Frontier World API."""
+
+    __tablename__ = "killmails"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    kill_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    victim_address: Mapped[str] = mapped_column(String(66), nullable=False)
+    victim_name: Mapped[str | None] = mapped_column(String(255))
+    victim_corp_id: Mapped[int | None] = mapped_column(Integer)
+    victim_corp_name: Mapped[str | None] = mapped_column(String(255))
+    killer_address: Mapped[str] = mapped_column(String(66), nullable=False)
+    killer_name: Mapped[str | None] = mapped_column(String(255))
+    killer_corp_id: Mapped[int | None] = mapped_column(Integer)
+    killer_corp_name: Mapped[str | None] = mapped_column(String(255))
+    solar_system_id: Mapped[int | None] = mapped_column(Integer)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    raw_json: Mapped[str | None] = mapped_column(Text)
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class AlertConfig(Base):
+    """User-configured Discord alert for tribe events."""
+
+    __tablename__ = "alert_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tribe_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("tribes.id"), nullable=False
+    )
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("members.id"), nullable=False
+    )
+    alert_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # kill_in_zone, corp_spotted, hostile_scan, feral_evolved, blind_spot, clone_low
+    target_id: Mapped[str | None] = mapped_column(
+        String(255)
+    )  # zone_id, corp_name, etc depending on type
+    target_name: Mapped[str | None] = mapped_column(String(255))  # display name
+    threshold: Mapped[int] = mapped_column(
+        Integer, default=1
+    )  # e.g. min kills per hour
+    discord_webhook_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    cooldown_minutes: Mapped[int] = mapped_column(
+        Integer, default=5
+    )  # min time between alerts
+    last_triggered: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
 class Crown(Base):
     """Crown identity NFT tracking from Sui chain."""
 

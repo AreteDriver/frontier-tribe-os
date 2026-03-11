@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
+import IntelBrief from '../components/IntelBrief';
 
 interface OrbitalZone {
   id: string;
@@ -260,6 +261,9 @@ export default function Watch() {
           <p className="text-sm text-green-400/70">No blind spots. All zones have recent scans.</p>
         </div>
       )}
+
+      {/* LLM Intel Brief */}
+      <IntelBrief />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Orbital Zones */}

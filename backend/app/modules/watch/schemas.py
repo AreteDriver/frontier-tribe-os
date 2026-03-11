@@ -119,3 +119,45 @@ class CrownRosterResponse(BaseModel):
     members_without_crowns: int
     crown_type_distribution: dict[str, int]
     crowns: list[CrownResponse]
+
+
+# --- System Intelligence ---
+
+
+class HotspotEntry(BaseModel):
+    zone_id: str
+    name: str
+    scan_count_24h: int
+    threat_level: str
+    feral_ai_tier: int
+    last_scanned: datetime | None
+    trend: str  # UP / DOWN / FLAT
+
+
+class HotspotResponse(BaseModel):
+    hotspots: list[HotspotEntry]
+    generated_at: datetime
+
+
+class HourlyScanCount(BaseModel):
+    hour: str
+    count: int
+
+
+class ThreatHistoryEntry(BaseModel):
+    timestamp: str
+    tier: int
+
+
+class ActiveScannerEntry(BaseModel):
+    scanner_id: str
+    scan_count: int
+
+
+class ZoneActivityResponse(BaseModel):
+    zone_id: str
+    name: str
+    hourly_scans: list[HourlyScanCount]
+    threat_history: list[ThreatHistoryEntry]
+    recent_scans: list[ScanResponse]
+    active_scanners: list[ActiveScannerEntry]

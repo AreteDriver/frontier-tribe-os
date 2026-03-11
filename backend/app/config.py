@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
+    # Anthropic (LLM Intel Briefing)
+    anthropic_api_key: str = ""
+
     # Discord
     discord_webhook_url: str = ""
 
