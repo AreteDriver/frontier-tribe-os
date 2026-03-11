@@ -1,4 +1,12 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import api from '../api';
+
+interface CycleInfo {
+  cycle: number;
+  cycle_name: string;
+  days_elapsed: number;
+}
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -10,6 +18,11 @@ const navItems = [
 export default function Layout() {
   const navigate = useNavigate();
   const characterName = localStorage.getItem('characterName') || 'Pilot';
+  const [cycle, setCycle] = useState<CycleInfo | null>(null);
+
+  useEffect(() => {
+    api.get('/watch/cycle').then((res) => setCycle(res.data)).catch(() => {});
+  }, []);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -21,6 +34,13 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Cycle Banner */}
+      {cycle && (
+        <div className="bg-purple-900/30 border-b border-purple-800/40 px-4 py-1.5 text-center text-xs font-mono tracking-widest text-purple-300">
+          CYCLE {cycle.cycle} // {cycle.cycle_name.toUpperCase()} // DAY {cycle.days_elapsed}
+        </div>
+      )}
+
       <header className="border-b border-[var(--color-border)] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-4 sm:gap-8">
           <h1 className="text-lg font-bold text-[var(--color-primary)]">

@@ -8,10 +8,14 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     Uuid,
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+# Current cycle constant — update on universe reset
+CURRENT_CYCLE = 5
 
 
 class Base(DeclarativeBase):
@@ -177,3 +181,157 @@ class LedgerTransaction(Base):
     )
 
     tribe: Mapped["Tribe"] = relationship(back_populates="ledger_transactions")
+
+
+# --- C5: Shroud of Fear ---
+
+
+class OrbitalZone(Base):
+    """Orbital zone with feral AI threat tracking."""
+
+    __tablename__ = "orbital_zones"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    zone_id: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False
+    )  # World API zone identifier
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    coordinates: Mapped[str | None] = mapped_column(
+        String(255)
+    )  # HIDDEN POST-CYCLE — stored but not exposed
+    feral_ai_tier: Mapped[int] = mapped_column(Integer, default=0)  # 0-4
+    last_scanned: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    feral_events: Mapped[list["FeralAIEvent"]] = relationship(
+        back_populates="zone", cascade="all, delete-orphan"
+    )
+    scans: Mapped[list["Scan"]] = relationship(
+        back_populates="zone", cascade="all, delete-orphan"
+    )
+
+
+class FeralAIEvent(Base):
+    """Feral AI evolution event within an orbital zone."""
+
+    __tablename__ = "feral_ai_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    zone_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orbital_zones.id"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # spawned, evolved, critical, dormant
+    severity: Mapped[int] = mapped_column(Integer, default=1)  # 1-5
+    previous_tier: Mapped[int | None] = mapped_column(Integer)
+    new_tier: Mapped[int | None] = mapped_column(Integer)
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    zone: Mapped["OrbitalZone"] = relationship(back_populates="feral_events")
+
+
+class Scan(Base):
+    """Void scan result submitted by a scanner."""
+
+    __tablename__ = "scans"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    zone_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orbital_zones.id"), nullable=False
+    )
+    scanner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("members.id"))
+    result_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # CLEAR, ANOMALY, HOSTILE, UNKNOWN
+    result_data: Mapped[str | None] = mapped_column(Text)  # JSON blob
+    confidence: Mapped[int] = mapped_column(Integer, default=100)  # 0-100
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    scanned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    zone: Mapped["OrbitalZone"] = relationship(back_populates="scans")
+
+
+class ScanIntel(Base):
+    """Aggregated scan intelligence per zone."""
+
+    __tablename__ = "scan_intel"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    zone_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("orbital_zones.id"), nullable=False
+    )
+    threat_signature: Mapped[str | None] = mapped_column(String(255))
+    anomaly_type: Mapped[str | None] = mapped_column(String(100))
+    confidence: Mapped[int] = mapped_column(Integer, default=0)
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    reported_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Clone(Base):
+    """Clone manufacturing and inventory tracking."""
+
+    __tablename__ = "clones"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    clone_id: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False
+    )  # World API clone ID
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("members.id"))
+    blueprint_id: Mapped[str | None] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(
+        String(50), default="active"
+    )  # active, manufacturing, destroyed
+    manufactured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    location_zone_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("orbital_zones.id")
+    )
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class CloneBlueprint(Base):
+    """Clone blueprint definitions with material requirements."""
+
+    __tablename__ = "clone_blueprints"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    blueprint_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    tier: Mapped[int] = mapped_column(Integer, default=1)
+    materials: Mapped[str | None] = mapped_column(Text)  # JSON
+    manufacture_time_sec: Mapped[int] = mapped_column(Integer, default=3600)
+
+
+class Crown(Base):
+    """Crown identity NFT tracking from Sui chain."""
+
+    __tablename__ = "crowns"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    crown_id: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False
+    )  # On-chain NFT ID
+    character_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("members.id")
+    )
+    crown_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    attributes: Mapped[str | None] = mapped_column(Text)  # JSON
+    equipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    chain_tx_id: Mapped[str | None] = mapped_column(String(100))
+    cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )

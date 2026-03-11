@@ -12,6 +12,7 @@ from app.modules.census.routes import router as census_router
 from app.modules.forge.routes import router as forge_router
 from app.modules.ledger.routes import router as ledger_router
 from app.modules.warden.routes import router as warden_router
+from app.modules.watch.routes import router as watch_router
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -64,6 +65,7 @@ app.include_router(census_router)
 app.include_router(forge_router)
 app.include_router(ledger_router)
 app.include_router(warden_router)
+app.include_router(watch_router)
 
 
 @app.get("/health")
