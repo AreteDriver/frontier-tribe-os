@@ -28,6 +28,10 @@ Frontier Tribe OS provides four integrated modules that give tribe leaders a sin
 
 - **Watch** -- C5 orbital zone monitoring built for the Shroud of Fear cycle. Includes the Signature Resolution System with graduated detection levels (UNRESOLVED > PARTIAL > IDENTIFIED > FULL_INTEL) across four signature types (EM, HEAT, GRAVIMETRIC, RADAR). Feral AI threat tracking with tier escalation (DORMANT > ACTIVE > EVOLVED > CRITICAL), clone reserve monitoring, crown roster, blind spot detection for zones not scanned in 20+ minutes, and Discord webhook alerts for hostile scans, AI evolution events, and low clone reserves.
 
+- **Intel** -- Kill feed with live polling (30s refresh), corp/system filtering, 24h/7d stats with hourly breakdowns and top systems. LLM-powered intel briefings via Claude Haiku -- zone selector, threat assessment, recommended actions, 15-minute cooldown cache. System Intelligence dashboard with hotspot table (top 20 zones by 24h scan count, trend indicators), zone detail with recharts graphs (hourly activity, threat history, scanner leaderboard).
+
+- **Alerts** -- Discord webhook alert configuration with 6 alert types (HOSTILE_SCAN, FERAL_AI_EVOLUTION, BLIND_SPOT, LOW_CLONES, ZONE_CRITICAL, KILL_DETECTED). Per-alert enable/disable, cooldown timers, threshold settings, webhook test button.
+
 - **Warden** -- Defense module scaffold for Move smart contract security patterns (AdminCap, flag-before-effects, checks-then-acts).
 
 ## Architecture
@@ -78,11 +82,15 @@ Backend (FastAPI + SQLAlchemy 2.0 async + Pydantic v2)
 
 3. **Discord Integration** -- Real-time webhook alerts for hostile scans, feral AI evolution, blind spots (zones unseen for 20+ minutes), and low clone reserves. Tribe leaders get actionable notifications without polling a dashboard.
 
-4. **World API Poller** -- Background sync of tribes, killmails, and assemblies from the blockchain gateway. Data stays fresh without manual refresh.
+4. **LLM Intel Briefings** -- Claude Haiku generates FC-style threat assessments per zone. Includes threat level, recommended actions, and 15-minute cache to prevent API abuse. Mock fallback when no API key is configured.
 
-5. **On-chain Treasury** -- Real Sui balance reads per member via JSON-RPC, not mock data. Non-custodial design -- backend never touches private keys.
+5. **System Intelligence** -- Hotspot table ranks top 20 zones by scan activity with trend indicators (UP/DOWN/FLAT). Zone detail view shows hourly activity, threat tier history, and scanner leaderboard via recharts graphs.
 
-6. **Zero Competition** -- No Alliance Auth equivalent exists for EVE Frontier. EF-Map has a blueprint calculator; EVE Vault has inventory management. Neither provides tribe-level coordination, production planning, or threat intel.
+6. **World API Poller** -- Background sync of tribes, killmails, and assemblies from the blockchain gateway. Killmails persisted to DB with upsert. Data stays fresh without manual refresh.
+
+7. **On-chain Treasury** -- Real Sui balance reads per member via JSON-RPC, not mock data. Non-custodial design -- backend never touches private keys.
+
+8. **Zero Competition** -- No Alliance Auth equivalent exists for EVE Frontier. EF-Map has a blueprint calculator; EVE Vault has inventory management. Neither provides tribe-level coordination, production planning, or threat intel.
 
 ## Tech Stack
 
@@ -99,6 +107,8 @@ Backend (FastAPI + SQLAlchemy 2.0 async + Pydantic v2)
 | Build | Vite |
 | Wallet | @mysten/dapp-kit |
 | Blockchain | Sui JSON-RPC |
+| Charts | recharts (frontend) |
+| LLM | Anthropic API (claude-haiku-4-5) via httpx |
 | Notifications | Discord webhooks (httpx) |
 | CI/CD | GitHub Actions (ruff lint + pytest + pip-audit) |
 | Deploy (Backend) | Fly.io |
@@ -150,6 +160,26 @@ Backend (FastAPI + SQLAlchemy 2.0 async + Pydantic v2)
 | GET | `/watch/clones` | Clone status and manufacturing queue |
 | GET | `/watch/crowns/roster` | Crown roster and type distribution |
 | GET | `/watch/alerts/blind-spots` | Zones not scanned in 20+ min |
+| GET | `/watch/systems/hotspots` | Top 20 zones by 24h scan count |
+| GET | `/watch/systems/{zone_id}/activity` | Zone activity timeline + graphs |
+
+### Intel
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/intel/killmails` | Paginated kill feed (filterable) |
+| GET | `/intel/killmails/{kill_id}` | Single killmail detail |
+| GET | `/intel/killmails/stats` | 24h/7d counts, hourly breakdown, top systems |
+| POST | `/intel/briefing` | LLM-generated threat assessment |
+| GET | `/intel/briefing/zones` | Zones eligible for briefing |
+
+### Alerts
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/alerts` | List alert configs |
+| POST | `/alerts` | Create alert config |
+| PATCH | `/alerts/{id}` | Update alert config |
+| DELETE | `/alerts/{id}` | Delete alert config |
+| POST | `/alerts/{id}/test` | Test Discord webhook |
 
 ## How to Run
 
@@ -175,8 +205,8 @@ Dev login: `POST http://localhost:8000/auth/dev-login?name=YourName`
 ## Test Coverage
 
 ```
-136+ tests passing
-Modules covered: census, forge, ledger, watch, auth, notifications, poller, world_api
+173 tests passing
+Modules covered: census, forge, ledger, watch, intel, alerts, auth, notifications, poller, world_api
 CI pipeline: ruff lint + pytest + pip-audit security scan
 Zero code scanning alerts, zero dependabot alerts
 ```

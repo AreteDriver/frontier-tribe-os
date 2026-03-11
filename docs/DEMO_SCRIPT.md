@@ -1,7 +1,7 @@
 # Frontier Tribe OS -- Demo Script
 
-> 3-minute walkthrough for EVE Frontier x Sui Hackathon 2026 judges.
-> Target: show all four modules in action with real data flows.
+> 5-minute walkthrough for EVE Frontier x Sui Hackathon 2026 judges.
+> Target: show all six modules in action with real data flows.
 
 ## Setup Before Recording
 
@@ -104,30 +104,67 @@
 
 ---
 
-## 7. Discord Alert Fires (20s)
+## 7. Intel -- Kill Feed and LLM Briefing (40s)
 
-1. Show the Discord channel.
-2. Point to the alert that fired when the HOSTILE scan was submitted:
-   - "HOSTILE DETECTED -- [Zone Name] scan by [Character]"
-3. Mention other alert types:
-   - Feral AI evolution
-   - Blind spot warnings
-   - Low clone reserve
+1. Navigate to **Intel**.
+2. Show the **Kill Feed** -- live polling every 30s, color-coded rows:
+   - Red (< 1hr), amber (< 24hr), default (older)
+3. Filter by corp name or system ID.
+4. Show **Stats Panel** -- 24h/7d kill counts, hourly breakdown, top systems.
+5. Scroll to **Intel Brief** panel on the Watch page:
+   - Select a zone from the dropdown
+   - Click **Generate Intel Brief**
+   - Show the LLM-generated threat assessment with:
+     - Threat level badge (color-coded)
+     - Summary text in military brevity
+     - Recommended action
+   - Note the 15-minute cooldown timer
 
-**Narration**: "Every hostile scan, AI evolution event, and blind spot triggers a Discord webhook alert. Tribe leaders get notified without polling the dashboard."
+**Narration**: "Intel aggregates kill feed data from the World API and generates LLM-powered threat briefings via Claude Haiku. The briefing reads zone scans and events, then produces an FC-style assessment with threat level and recommended actions."
+
+---
+
+## 8. Systems Intelligence (30s)
+
+1. Navigate to **Systems**.
+2. Show the **Hotspot Table** -- top 20 zones ranked by 24h scan count:
+   - Trend arrows: green up, red down, grey flat
+   - Threat level badges
+3. Click a zone row to expand the **Detail Panel**:
+   - **Activity tab**: recharts AreaChart of hourly scan counts
+   - **Threat History tab**: LineChart of feral AI tier over time
+   - **Active Scanners tab**: BarChart of top 10 scanners
+
+**Narration**: "Systems Intelligence ranks zones by activity and visualizes trends. The hotspot table shows where the action is. Click any zone for hourly activity graphs, threat tier history, and scanner leaderboards."
+
+---
+
+## 9. Alerts Configuration (20s)
+
+1. Navigate to **Alerts**.
+2. Show existing alert configs with type badges and toggle switches.
+3. Create a new alert:
+   - Type: HOSTILE_SCAN
+   - Discord webhook URL
+   - Threshold, cooldown
+4. Click **Test** -- webhook fires to Discord.
+5. Toggle an alert off/on.
+
+**Narration**: "Alerts let tribe leaders configure Discord webhooks per event type. Six alert types: hostile scans, AI evolution, blind spots, low clones, zone critical, and kill detected. Each has its own threshold and cooldown."
 
 ---
 
 ## Closing (10s)
 
-**Narration**: "Frontier Tribe OS -- four modules, one platform. Census for identity, Forge for production, Ledger for treasury, Watch for threat intel. 136 tests, deployed on Fly.io and Vercel, non-custodial Sui integration, and zero competition in the EVE Frontier ecosystem. Built solo by AreteDriver."
+**Narration**: "Frontier Tribe OS -- six modules, one platform. Census for identity, Forge for production, Ledger for treasury, Watch for threat intel, Intel for kill feed and LLM briefings, Alerts for Discord notifications. 173 tests, deployed on Fly.io and Vercel, non-custodial Sui integration, and zero competition in the EVE Frontier ecosystem. Built solo by AreteDriver."
 
 ---
 
 ## Talking Points (if judges ask questions)
 
-- **Why four modules?** Tribes need coordination across identity, production, finance, and security. A tool that only does one is just another spreadsheet.
+- **Why six modules?** Tribes need coordination across identity, production, finance, security, intelligence, and notifications. A tool that only does one is just another spreadsheet.
 - **Why non-custodial?** Trust is earned in EVE. No tribe leader will hand private keys to a third-party tool. Read-only chain access with client-side signing is the only credible design.
 - **What is the Signature Resolution System?** EVE Frontier C5 introduces passive observation. You do not get perfect intel instantly -- you get graduated visibility based on scan quality. Our system models this with four resolution tiers and four signature types.
-- **What about the World API?** We poll the blockchain gateway for tribe, character, and killmail data. Static JSON fallback if the API is unavailable. Document all findings in API_NOTES.md.
+- **What about the LLM integration?** Claude Haiku generates FC-style intel briefings from scan and event data. 15-minute cache prevents abuse. No API key = mock response, so the app never breaks.
+- **What about the World API?** We poll the blockchain gateway for tribe, character, and killmail data. Killmails are now persisted to DB and feed the Intel page. Static JSON fallback if the API is unavailable.
 - **Post-hackathon?** SaaS model. Free tier (1 tribe, 10 members, Census only). Tribe Pro at $15/mo. Syndicate tier at $49/mo for multi-tribe management.
