@@ -6,9 +6,10 @@
 
 ## Current State
 
-- **Language**: Python
-- **Files**: 94 across 5 languages
-- **Lines**: 13,149
+- **Language**: Python, TypeScript
+- **Tests**: 180+
+- **Modules**: Census, Forge, Ledger, Watch, Intel, Alerts, Warden
+- **Deploy**: Fly.io (backend) + Vercel (frontend)
 
 ## Architecture
 
@@ -38,10 +39,16 @@ frontier-tribe-os/
 
 ## Tech Stack
 
-- **Language**: Python, TypeScript, JavaScript, HTML, CSS
+- **Language**: Python 3.12, TypeScript, JavaScript, HTML, CSS
+- **Backend**: FastAPI + SQLAlchemy 2.0 async + Pydantic v2
+- **Frontend**: React 19 + Tailwind CSS v4 + Vite
+- **Auth**: PyJWT (replaced python-jose due to CVE)
+- **HTTP**: httpx (async)
+- **Charts**: recharts (System Intelligence page)
+- **LLM**: Anthropic API via httpx (claude-haiku-4-5)
 - **Runtime**: Docker
-- **CI/CD**: GitHub Actions
-- **Charts**: recharts (frontend dependency for System Intelligence page)
+- **CI/CD**: GitHub Actions (ruff + pytest + pip-audit)
+- **Database**: PostgreSQL (prod) / SQLite (dev/test)
 
 ## Coding Standards
 
@@ -98,36 +105,28 @@ frontier-tribe-os/
 ## Domain Context
 
 ### Frontend Pages
-- `/dashboard` — Dashboard
-- `/roster` — Census (tribe members)
-- `/production` — Forge (production jobs)
-- `/treasury` — Ledger (treasury transactions)
-- `/watch` — Watch (C5 orbital zones, scans, clones, crowns)
-- `/intel` — Intel (kill feed)
-- `/alerts` — Alerts (Discord alert config)
-- `/systems` — Systems Intelligence (hotspot table + zone detail with recharts graphs)
+- `/dashboard` — Dashboard (summary cards, cycle banner)
+- `/roster` — Census (tribe members, roles, join flow)
+- `/production` — Forge (production jobs, blueprint detail, gap analysis)
+- `/treasury` — Ledger (Sui treasury, wallet balances)
+- `/watch` — Watch (C5 orbital zones, scans, clones, crowns, intel brief)
+- `/intel` — Intel (kill feed with live polling, pilot search)
+- `/intel/pilots/:address` — Pilot Intelligence (K/D, threat level, active hours)
+- `/intel/corps/:corpId` — Corp Intelligence (efficiency, top killers, leaderboard)
+- `/alerts` — Alerts (Discord webhook config, 6 alert types)
+- `/systems` — Systems Intelligence (hotspot table, zone detail, recharts graphs)
 
 ### Key Models/Classes
-- `BalanceResponse`
-- `Base`
-- `ErrorBoundary`
-- `InventoryItem`
-- `InventoryResponse`
-- `JobCreate`
-- `JobResponse`
-- `JobUpdate`
-- `JoinRequest`
-- `JoinRequestAction`
-- `JoinRequestResponse`
-- `LedgerTransaction`
-- `Member`
-- `MemberResponse`
-- `ProductionJob`
-- `Killmail`
-- `AlertConfig`
-- `KillmailResponse`
-- `KillmailStatsResponse`
-- `IntelBriefingService`
+- `Tribe`, `Member`, `JoinRequest` — Census
+- `ProductionJob`, `TribeInventory` — Forge
+- `LedgerTransaction` — Ledger
+- `OrbitalZone`, `FeralAIEvent`, `Scan`, `ScanIntel` — Watch
+- `Clone`, `CloneBlueprint`, `Crown` — Watch (C5)
+- `Killmail` — Intel (kill feed, pilot/corp profiles)
+- `AlertConfig` — Alerts (Discord webhooks)
+- `IntelBriefingService` — LLM intel summary
+- `WorldAPIPoller` — Background sync (tribes, killmails, assemblies)
+- `PilotProfileResponse`, `CorpProfileResponse` — Intel schemas
 
 ### Domain Terms
 - CD
@@ -170,6 +169,10 @@ frontier-tribe-os/
 - `/intel/briefing/zones` — zones with enough data for briefing
 - `/alerts` — CRUD for Discord alert configs
 - `/alerts/{alert_id}/test` — send test alert to Discord webhook
+- `/intel/pilots/search?q=` — search pilots by name
+- `/intel/pilots/{address}` — pilot profile (K/D, threat level, active hours, top systems)
+- `/intel/corps/leaderboard` — top 10 corps by kill count
+- `/intel/corps/{corp_id}` — corp profile (efficiency, top killers, members)
 - `/watch/systems/hotspots` — Top 20 most active zones by scan count (24h), with trend (UP/DOWN/FLAT)
 - `/watch/systems/{zone_id}/activity` — Zone activity timeline: hourly scans, threat history, recent scans, active scanners
 

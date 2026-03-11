@@ -132,11 +132,14 @@ class HotspotEntry(BaseModel):
     feral_ai_tier: int
     last_scanned: datetime | None
     trend: str  # UP / DOWN / FLAT
+    predicted_scans_1h: int = 0
+    predicted_scans_2h: int = 0
 
 
 class HotspotResponse(BaseModel):
     hotspots: list[HotspotEntry]
     generated_at: datetime
+    prediction_method: str = "7d_hourly_avg"
 
 
 class HourlyScanCount(BaseModel):

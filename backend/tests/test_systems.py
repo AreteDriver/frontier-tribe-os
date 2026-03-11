@@ -196,3 +196,81 @@ async def test_system_activity_zone_not_found(client, auth_headers):
     )
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Zone not found"
+
+
+@pytest.mark.asyncio
+async def test_hotspots_predictions_default_zero(client, auth_headers, db_session):
+    """New zone with no scan history returns prediction values of 0."""
+    zone = OrbitalZone(
+        zone_id="zone-pred-empty",
+        name="Prediction Empty",
+        feral_ai_tier=0,
+    )
+    db_session.add(zone)
+    await db_session.commit()
+
+    resp = await client.get("/watch/systems/hotspots", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["prediction_method"] == "7d_hourly_avg"
+    hotspots = data["hotspots"]
+    assert len(hotspots) == 1
+    assert hotspots[0]["predicted_scans_1h"] == 0
+    assert hotspots[0]["predicted_scans_2h"] == 0
+
+
+@pytest.mark.asyncio
+async def test_hotspots_predictions_with_history(client, auth_headers, db_session):
+    """Seeding scans at specific hours over multiple days produces correct averages."""
+    now = datetime.now(timezone.utc)
+    target_hour_1h = (now.hour + 1) % 24
+    target_hour_2h = (now.hour + 2) % 24
+
+    zone = OrbitalZone(
+        zone_id="zone-pred-hist",
+        name="Prediction History",
+        feral_ai_tier=1,
+        last_scanned=now,
+    )
+    db_session.add(zone)
+    await db_session.commit()
+    await db_session.refresh(zone)
+
+    # Seed scans for +1h target hour: 3 days, 2 scans each day = 6 total / 3 days = 2 avg
+    for day_offset in range(1, 4):
+        for _ in range(2):
+            scan_time = (now - timedelta(days=day_offset)).replace(
+                hour=target_hour_1h, minute=15, second=0, microsecond=0
+            )
+            db_session.add(
+                Scan(
+                    zone_id=zone.id,
+                    result_type="CLEAR",
+                    scanned_at=scan_time,
+                )
+            )
+
+    # Seed scans for +2h target hour: 2 days, 3 scans each day = 6 total / 2 days = 3 avg
+    for day_offset in range(1, 3):
+        for _ in range(3):
+            scan_time = (now - timedelta(days=day_offset)).replace(
+                hour=target_hour_2h, minute=30, second=0, microsecond=0
+            )
+            db_session.add(
+                Scan(
+                    zone_id=zone.id,
+                    result_type="ANOMALY",
+                    scanned_at=scan_time,
+                )
+            )
+
+    await db_session.commit()
+
+    resp = await client.get("/watch/systems/hotspots", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["prediction_method"] == "7d_hourly_avg"
+    hotspots = data["hotspots"]
+    assert len(hotspots) == 1
+    assert hotspots[0]["predicted_scans_1h"] == 2
+    assert hotspots[0]["predicted_scans_2h"] == 3

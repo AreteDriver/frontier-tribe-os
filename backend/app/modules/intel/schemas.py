@@ -133,3 +133,56 @@ class CorpLeaderboardEntry(BaseModel):
     corp_id: int
     corp_name: str | None = None
     kill_count: int
+
+
+# --- Battle Report ---
+
+
+class BattleSide(BaseModel):
+    """One side (corp) in a battle."""
+
+    corp_name: str | None = None
+    corp_id: int | None = None
+    kill_count: int = 0
+    death_count: int = 0
+    addresses: list[str] = []
+    efficiency: float = 0.0
+
+
+class BattleTimelineEntry(BaseModel):
+    """Single kill event in a battle timeline."""
+
+    kill_id: int
+    killer_name: str | None = None
+    killer_address: str
+    killer_corp_name: str | None = None
+    victim_name: str | None = None
+    victim_address: str
+    victim_corp_name: str | None = None
+    timestamp: datetime
+
+
+class BattleSummary(BaseModel):
+    """Summary of a detected battle."""
+
+    battle_id: str
+    solar_system_id: int
+    start_time: datetime
+    end_time: datetime
+    total_kills: int
+    sides: list[BattleSide]
+    preview: list[str]
+
+
+class BattleDetailResponse(BaseModel):
+    """Full battle report with timeline and optional narrative."""
+
+    battle_id: str
+    solar_system_id: int
+    start_time: datetime
+    end_time: datetime
+    total_kills: int
+    duration_minutes: float
+    sides: list[BattleSide]
+    timeline: list[BattleTimelineEntry]
+    narrative: str | None = None

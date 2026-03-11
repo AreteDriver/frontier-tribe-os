@@ -205,8 +205,8 @@ Dev login: `POST http://localhost:8000/auth/dev-login?name=YourName`
 ## Test Coverage
 
 ```
-173 tests passing
-Modules covered: census, forge, ledger, watch, intel, alerts, auth, notifications, poller, world_api
+180+ tests passing
+Modules covered: census, forge, ledger, watch, intel (killmails, pilots, corps, battles, briefing), alerts, auth, notifications, poller, world_api
 CI pipeline: ruff lint + pytest + pip-audit security scan
 Zero code scanning alerts, zero dependabot alerts
 ```
@@ -235,7 +235,19 @@ pytest --cov=app -v
 
 ## Screenshots
 
-(TODO -- will add before submission)
+To capture screenshots for submission, visit each page after seeding demo data:
+
+1. **Dashboard** — `https://frontend-ten-theta-80.vercel.app/dashboard` (summary cards, cycle banner)
+2. **Roster** — `/roster` (4 members with role badges)
+3. **Forge** — `/production` (3 jobs in different states, blueprint detail)
+4. **Treasury** — `/treasury` (Sui balance display)
+5. **Watch** — `/watch` (orbital zones with threat levels, scan feed with signature types, intel brief panel)
+6. **Intel** — `/intel` (kill feed with color coding, stats panel, pilot search)
+7. **Pilot Profile** — `/intel/pilots/0x1111111111111111111111111111111111111111` (Asterix stats)
+8. **Systems** — `/systems` (hotspot table with trends, zone detail graphs)
+9. **Alerts** — `/alerts` (alert configs with toggle switches)
+
+Dev login: `POST https://frontier-tribe-os.fly.dev/auth/dev-login?name=Asterix`
 
 ## Team
 

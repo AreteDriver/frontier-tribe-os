@@ -21,6 +21,8 @@ interface HotspotEntry {
   feral_ai_tier: number;
   last_scanned: string | null;
   trend: string;
+  predicted_scans_1h: number;
+  predicted_scans_2h: number;
 }
 
 interface HourlyScan {
@@ -220,13 +222,15 @@ export default function Systems() {
                 <SortHeader label="24h Scans" field="scan_count_24h" />
                 <SortHeader label="Threat Level" field="threat_level" />
                 <SortHeader label="Trend" field="trend" />
+                <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-dim)] uppercase tracking-wider" title="Predicted (7-day hourly average)">+1h</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-dim)] uppercase tracking-wider" title="Predicted (7-day hourly average)">+2h</th>
                 <SortHeader label="Last Scanned" field="last_scanned" />
               </tr>
             </thead>
             <tbody>
               {sortedHotspots.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-sm text-[var(--color-text-dim)]">
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-[var(--color-text-dim)]">
                     No zones with activity data. Add zones in Watch first.
                   </td>
                 </tr>
@@ -250,6 +254,12 @@ export default function Systems() {
                     </td>
                     <td className="px-3 py-2.5">
                       <TrendIndicator trend={h.trend} />
+                    </td>
+                    <td className="px-3 py-2.5 text-sm text-zinc-500 font-mono" title="Predicted (7-day hourly average)">
+                      {h.predicted_scans_1h}
+                    </td>
+                    <td className="px-3 py-2.5 text-sm text-zinc-500 font-mono" title="Predicted (7-day hourly average)">
+                      {h.predicted_scans_2h}
                     </td>
                     <td className="px-3 py-2.5 text-xs text-[var(--color-text-dim)]">
                       {h.last_scanned ? timeAgo(h.last_scanned) : 'never'}

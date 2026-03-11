@@ -12,6 +12,7 @@ import Alerts from './pages/Alerts';
 import Systems from './pages/Systems';
 import PilotProfile from './pages/PilotProfile';
 import CorpProfile from './pages/CorpProfile';
+import BattleReport from './pages/BattleReport';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ function App() {
           <Route path="/systems" element={<Systems />} />
           <Route path="/intel/pilots/:address" element={<PilotProfile />} />
           <Route path="/intel/corps/:corpId" element={<CorpProfile />} />
+          <Route path="/intel/battles" element={<BattleReport />} />
         </Route>
       </Routes>
     </BrowserRouter>

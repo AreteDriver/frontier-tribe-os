@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_current_member
@@ -438,6 +438,40 @@ async def system_hotspots(
         else:
             trend = "FLAT"
 
+        # Predict scans for +1h and +2h using 7-day hourly average
+        predicted_1h = 0
+        predicted_2h = 0
+        cutoff_7d = now - timedelta(days=7)
+
+        for offset, attr in [(1, "predicted_1h"), (2, "predicted_2h")]:
+            target_hour = (now.hour + offset) % 24
+            avg_count = await db.scalar(
+                select(func.count())
+                .select_from(Scan)
+                .where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= cutoff_7d,
+                    Scan.scanned_at < now,
+                    extract("hour", Scan.scanned_at) == target_hour,
+                )
+            )
+            # Count days with data in this window to compute average
+            day_count = await db.scalar(
+                select(func.count(func.distinct(func.date(Scan.scanned_at)))).where(
+                    Scan.zone_id == zone.id,
+                    Scan.scanned_at >= cutoff_7d,
+                    Scan.scanned_at < now,
+                    extract("hour", Scan.scanned_at) == target_hour,
+                )
+            )
+            total = avg_count or 0
+            days = day_count or 0
+            avg = total // days if days > 0 else 0
+            if attr == "predicted_1h":
+                predicted_1h = avg
+            else:
+                predicted_2h = avg
+
         hotspots.append(
             HotspotEntry(
                 zone_id=zone.zone_id,
@@ -447,12 +481,18 @@ async def system_hotspots(
                 feral_ai_tier=zone.feral_ai_tier,
                 last_scanned=zone.last_scanned,
                 trend=trend,
+                predicted_scans_1h=predicted_1h,
+                predicted_scans_2h=predicted_2h,
             )
         )
 
     # Sort by scan count descending, take top 20
     hotspots.sort(key=lambda h: h.scan_count_24h, reverse=True)
-    return HotspotResponse(hotspots=hotspots[:20], generated_at=now)
+    return HotspotResponse(
+        hotspots=hotspots[:20],
+        generated_at=now,
+        prediction_method="7d_hourly_avg",
+    )
 
 
 @router.get("/systems/{zone_id}/activity", response_model=ZoneActivityResponse)
