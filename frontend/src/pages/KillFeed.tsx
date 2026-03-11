@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api';
 
 interface Killmail {
@@ -23,6 +24,11 @@ interface KillmailStats {
   top_systems: { solar_system_id: number; count: number }[];
 }
 
+interface PilotSearchResult {
+  address: string;
+  name: string | null;
+}
+
 function getRowTint(timestamp: string): string {
   const age = Date.now() - new Date(timestamp).getTime();
   const oneHour = 3600_000;
@@ -39,6 +45,10 @@ export default function KillFeed() {
   const [systemFilter, setSystemFilter] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pilotQuery, setPilotQuery] = useState('');
+  const [pilotResults, setPilotResults] = useState<PilotSearchResult[]>([]);
+  const [showPilotResults, setShowPilotResults] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchKills = useCallback(async () => {
     try {
@@ -62,6 +72,25 @@ export default function KillFeed() {
       // silent
     }
   }, []);
+
+  const handlePilotSearch = (q: string) => {
+    setPilotQuery(q);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (q.length < 2) {
+      setPilotResults([]);
+      setShowPilotResults(false);
+      return;
+    }
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/intel/pilots/search', { params: { q } });
+        setPilotResults(res.data);
+        setShowPilotResults(true);
+      } catch {
+        setPilotResults([]);
+      }
+    }, 300);
+  };
 
   useEffect(() => {
     fetchKills();
@@ -103,10 +132,10 @@ export default function KillFeed() {
       )}
 
       {/* Filter bar */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <input
           type="text"
-          placeholder="Search name / corp..."
+          placeholder="Filter name / corp..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm flex-1 max-w-xs"
@@ -118,6 +147,30 @@ export default function KillFeed() {
           onChange={(e) => setSystemFilter(e.target.value)}
           className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm w-32"
         />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search pilot..."
+            value={pilotQuery}
+            onChange={(e) => handlePilotSearch(e.target.value)}
+            onBlur={() => setTimeout(() => setShowPilotResults(false), 200)}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm w-48"
+          />
+          {showPilotResults && pilotResults.length > 0 && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+              {pilotResults.map((p) => (
+                <Link
+                  key={p.address}
+                  to={`/intel/pilots/${p.address}`}
+                  className="block px-3 py-2 text-sm hover:bg-[var(--color-border)] transition-colors"
+                >
+                  <span className="text-[var(--color-primary)]">{p.name || 'Unknown'}</span>
+                  <span className="text-xs text-[var(--color-text-dim)] ml-2">{p.address.slice(0, 10)}...</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Kill list */}
@@ -135,13 +188,13 @@ export default function KillFeed() {
               >
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex gap-4 items-center">
-                    <span className="text-red-400 font-medium">
+                    <Link to={`/intel/pilots/${k.killer_address}`} className="text-red-400 font-medium hover:underline" onClick={(e) => e.stopPropagation()}>
                       {k.killer_name || k.killer_address.slice(0, 10)}
-                    </span>
+                    </Link>
                     <span className="text-[var(--color-text-dim)]">killed</span>
-                    <span className="text-amber-300">
+                    <Link to={`/intel/pilots/${k.victim_address}`} className="text-amber-300 hover:underline" onClick={(e) => e.stopPropagation()}>
                       {k.victim_name || k.victim_address.slice(0, 10)}
-                    </span>
+                    </Link>
                     {k.solar_system_id && (
                       <span className="text-[var(--color-text-dim)] text-xs">
                         sys:{k.solar_system_id}

@@ -73,3 +73,63 @@ class KillmailStatsResponse(BaseModel):
     top_systems: list[TopSystem]
     total_24h: int
     total_7d: int
+
+
+# --- Pilot Intelligence ---
+
+
+class ActiveHour(BaseModel):
+    hour: int
+    count: int
+
+
+class PilotProfileResponse(BaseModel):
+    """Pilot intelligence profile computed from killmail data."""
+
+    address: str
+    name: str | None = None
+    kill_count: int
+    death_count: int
+    kd_ratio: float
+    primary_systems: list[TopSystem]
+    active_hours: list[ActiveHour]
+    recent_kills: list[KillmailResponse]
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    threat_level: str
+
+
+class PilotSearchResult(BaseModel):
+    address: str
+    name: str | None = None
+    kill_count: int = 0
+    death_count: int = 0
+
+
+# --- Corp Intelligence ---
+
+
+class TopKiller(BaseModel):
+    address: str
+    name: str | None = None
+    kill_count: int
+
+
+class CorpProfileResponse(BaseModel):
+    """Corp intelligence profile computed from killmail data."""
+
+    corp_id: int
+    corp_name: str | None = None
+    kill_count: int
+    death_count: int
+    efficiency: float
+    member_addresses: list[str]
+    primary_systems: list[TopSystem]
+    recent_kills: list[KillmailResponse]
+    top_killers: list[TopKiller]
+
+
+class CorpLeaderboardEntry(BaseModel):
+    corp_id: int
+    corp_name: str | None = None
+    kill_count: int

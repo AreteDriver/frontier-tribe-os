@@ -10,6 +10,8 @@ import Watch from './pages/Watch';
 import KillFeed from './pages/KillFeed';
 import Alerts from './pages/Alerts';
 import Systems from './pages/Systems';
+import PilotProfile from './pages/PilotProfile';
+import CorpProfile from './pages/CorpProfile';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -40,6 +42,8 @@ function App() {
           <Route path="/intel" element={<KillFeed />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/systems" element={<Systems />} />
+          <Route path="/intel/pilots/:address" element={<PilotProfile />} />
+          <Route path="/intel/corps/:corpId" element={<CorpProfile />} />
         </Route>
       </Routes>
     </BrowserRouter>
