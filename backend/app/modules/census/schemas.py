@@ -26,9 +26,11 @@ class MemberResponse(BaseModel):
     wallet_address: str
     character_name: str | None
     role: str
+    ship_class: str | None = None
     timezone: str | None
     last_active: datetime | None
     joined_at: datetime
+    is_active: bool = True
 
     model_config = {"from_attributes": True}
 

@@ -84,7 +84,9 @@ async def enable_warden(
         raise HTTPException(status_code=404, detail="Tribe not found")
 
     if not tribe.leader_address:
-        raise HTTPException(status_code=400, detail="Tribe has no treasury address to monitor")
+        raise HTTPException(
+            status_code=400, detail="Tribe has no treasury address to monitor"
+        )
 
     from .engine import WardenEngine
 
@@ -95,9 +97,15 @@ async def enable_warden(
     engine = WardenEngine(
         tribe_id=tid,
         tribe_address=tribe.leader_address,
-        max_cycles=config.max_cycles_per_session if config and config.max_cycles_per_session else 24,
-        alert_tier_threshold=config.alert_tier_threshold if config and config.alert_tier_threshold else 2,
-        cycle_interval_seconds=config.cycle_interval_seconds if config and config.cycle_interval_seconds else 300,
+        max_cycles=config.max_cycles_per_session
+        if config and config.max_cycles_per_session
+        else 24,
+        alert_tier_threshold=config.alert_tier_threshold
+        if config and config.alert_tier_threshold
+        else 2,
+        cycle_interval_seconds=config.cycle_interval_seconds
+        if config and config.cycle_interval_seconds
+        else 300,
     )
     engine.load_doctrine()
     _engines[tid] = engine
@@ -118,7 +126,11 @@ async def disable_warden(
     engine = _engines.pop(tid, None)
     if engine:
         engine.stop()
-        return {"status": "disabled", "tribe_id": tid, "cycles_completed": engine.cycle_count}
+        return {
+            "status": "disabled",
+            "tribe_id": tid,
+            "cycles_completed": engine.cycle_count,
+        }
 
     return {"status": "not_enabled", "tribe_id": tid}
 

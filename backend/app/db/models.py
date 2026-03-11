@@ -78,6 +78,7 @@ class Member(Base):
         String(100)
     )  # On-chain entity ID (big int)
     role: Mapped[str] = mapped_column(String(50), default="recruit")
+    ship_class: Mapped[str | None] = mapped_column(String(100))  # Primary ship class
     timezone: Mapped[str | None] = mapped_column(String(50))
     last_active: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     joined_at: Mapped[datetime] = mapped_column(

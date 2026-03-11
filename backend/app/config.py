@@ -39,7 +39,10 @@ class Settings(BaseSettings):
         missing = []
         if not self.database_url:
             missing.append("DATABASE_URL")
-        if not self.secret_key or self.secret_key == "change-me-to-a-random-32-char-string-minimum":
+        if (
+            not self.secret_key
+            or self.secret_key == "change-me-to-a-random-32-char-string-minimum"
+        ):
             missing.append("SECRET_KEY")
         if self.environment != "development":
             if not self.eve_frontier_client_id:

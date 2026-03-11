@@ -38,10 +38,22 @@ def engine(tmp_path: Path) -> WardenEngine:
 def sample_events() -> list[dict]:
     """Sample blockchain events for testing."""
     return [
-        {"tx_digest": "tx1", "status": "success", "type": "balance_change",
-         "owner": "0xabc123", "amount": "-5000000000", "coin_type": "0x2::sui::SUI"},
-        {"tx_digest": "tx2", "status": "success", "type": "balance_change",
-         "owner": "0xdef456", "amount": "5000000000", "coin_type": "0x2::sui::SUI"},
+        {
+            "tx_digest": "tx1",
+            "status": "success",
+            "type": "balance_change",
+            "owner": "0xabc123",
+            "amount": "-5000000000",
+            "coin_type": "0x2::sui::SUI",
+        },
+        {
+            "tx_digest": "tx2",
+            "status": "success",
+            "type": "balance_change",
+            "owner": "0xdef456",
+            "amount": "5000000000",
+            "coin_type": "0x2::sui::SUI",
+        },
         {"tx_digest": "tx3", "status": "success"},
     ]
 
@@ -92,7 +104,9 @@ class TestWardenEngineInit:
         assert "Tribe Doctrine" in loaded
         assert loaded == doctrine_text
 
-    def test_load_doctrine_from_file(self, engine: WardenEngine, tmp_path: Path, doctrine_text: str):
+    def test_load_doctrine_from_file(
+        self, engine: WardenEngine, tmp_path: Path, doctrine_text: str
+    ):
         doctrine_file = tmp_path / "doctrine.md"
         doctrine_file.write_text(doctrine_text)
         engine._doctrine_path = doctrine_file
@@ -180,7 +194,9 @@ class TestSingleCycle:
         assert record.tier == 1
 
     @pytest.mark.asyncio
-    async def test_cycle_generates_alert(self, engine: WardenEngine, sample_events: list):
+    async def test_cycle_generates_alert(
+        self, engine: WardenEngine, sample_events: list
+    ):
         """Large outflow should trigger an alert (tier >= 2)."""
         engine.load_doctrine()
         await engine.run_cycle(events=sample_events)
@@ -201,7 +217,9 @@ class TestSingleCycle:
         assert entry["tribe_id"] == "tribe-test-1"
 
     @pytest.mark.asyncio
-    async def test_multiple_cycles_append_audit(self, engine: WardenEngine, tmp_path: Path):
+    async def test_multiple_cycles_append_audit(
+        self, engine: WardenEngine, tmp_path: Path
+    ):
         engine.load_doctrine()
         await engine.run_cycle(events=[])
         await engine.run_cycle(events=[])
@@ -232,21 +250,25 @@ class TestLLMCycle:
         engine.load_doctrine()
 
         def mock_hypothesis(prompt: str) -> str:
-            return json.dumps({
-                "threat_type": "hostile_transfer",
-                "hypothesis": "Transfer to known hostile address 0xdead",
-                "evidence": ["tx_suspicious"],
-                "estimated_severity": 3,
-                "suggested_response": "Block address",
-            })
+            return json.dumps(
+                {
+                    "threat_type": "hostile_transfer",
+                    "hypothesis": "Transfer to known hostile address 0xdead",
+                    "evidence": ["tx_suspicious"],
+                    "estimated_severity": 3,
+                    "suggested_response": "Block address",
+                }
+            )
 
         def mock_evaluator(prompt: str) -> str:
-            return json.dumps({
-                "outcome": "escalate",
-                "tier": 3,
-                "rationale": "Hostile address confirmed",
-                "confidence": 0.85,
-            })
+            return json.dumps(
+                {
+                    "outcome": "escalate",
+                    "tier": 3,
+                    "rationale": "Hostile address confirmed",
+                    "confidence": 0.85,
+                }
+            )
 
         record = await engine.run_cycle(
             events=[{"tx_digest": "tx1"}],
@@ -262,21 +284,25 @@ class TestLLMCycle:
         engine.load_doctrine()
 
         async def async_generator(prompt: str) -> str:
-            return json.dumps({
-                "threat_type": "none",
-                "hypothesis": "No threats",
-                "evidence": [],
-                "estimated_severity": 1,
-                "suggested_response": "Continue monitoring",
-            })
+            return json.dumps(
+                {
+                    "threat_type": "none",
+                    "hypothesis": "No threats",
+                    "evidence": [],
+                    "estimated_severity": 1,
+                    "suggested_response": "Continue monitoring",
+                }
+            )
 
         async def async_evaluator(prompt: str) -> str:
-            return json.dumps({
-                "outcome": "dismiss",
-                "tier": 1,
-                "rationale": "All clear",
-                "confidence": 0.95,
-            })
+            return json.dumps(
+                {
+                    "outcome": "dismiss",
+                    "tier": 1,
+                    "rationale": "All clear",
+                    "confidence": 0.95,
+                }
+            )
 
         record = await engine.run_cycle(
             events=[],
@@ -299,9 +325,13 @@ class TestAlerts:
         engine.load_doctrine()
         # Create events that trigger a severity 4+ → tier 3 escalation
         big_events = [
-            {"type": "balance_change", "tx_digest": f"tx{i}",
-             "owner": "0xabc123", "amount": f"-{10_000_000_000}",
-             "coin_type": "0x2::sui::SUI"}
+            {
+                "type": "balance_change",
+                "tx_digest": f"tx{i}",
+                "owner": "0xabc123",
+                "amount": f"-{10_000_000_000}",
+                "coin_type": "0x2::sui::SUI",
+            }
             for i in range(5)
         ]
         await engine.run_cycle(events=big_events)
@@ -355,15 +385,33 @@ class TestEventIngestion:
     @pytest.mark.asyncio
     async def test_ingest_from_sui(self, engine: WardenEngine):
         mock_txs = [
-            {"digest": "tx1", "effects": {"status": {"status": "success"}, "gasUsed": {}}, "timestampMs": "123"},
+            {
+                "digest": "tx1",
+                "effects": {"status": {"status": "success"}, "gasUsed": {}},
+                "timestampMs": "123",
+            },
         ]
-        mock_details = {"balanceChanges": [
-            {"owner": {"AddressOwner": "0xabc"}, "coinType": "0x2::sui::SUI", "amount": "-1000"},
-        ]}
+        mock_details = {
+            "balanceChanges": [
+                {
+                    "owner": {"AddressOwner": "0xabc"},
+                    "coinType": "0x2::sui::SUI",
+                    "amount": "-1000",
+                },
+            ]
+        }
 
         with (
-            patch("app.api.sui.get_transactions_for_address", new_callable=AsyncMock, return_value=mock_txs),
-            patch("app.api.sui.get_transaction_details", new_callable=AsyncMock, return_value=mock_details),
+            patch(
+                "app.api.sui.get_transactions_for_address",
+                new_callable=AsyncMock,
+                return_value=mock_txs,
+            ),
+            patch(
+                "app.api.sui.get_transaction_details",
+                new_callable=AsyncMock,
+                return_value=mock_details,
+            ),
         ):
             events = await engine._ingest_events()
             assert len(events) >= 2  # tx event + balance change
@@ -371,7 +419,11 @@ class TestEventIngestion:
 
     @pytest.mark.asyncio
     async def test_ingest_empty(self, engine: WardenEngine):
-        with patch("app.api.sui.get_transactions_for_address", new_callable=AsyncMock, return_value=[]):
+        with patch(
+            "app.api.sui.get_transactions_for_address",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
             events = await engine._ingest_events()
             assert events == []
 

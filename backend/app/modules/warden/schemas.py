@@ -9,9 +9,14 @@ from pydantic import BaseModel, Field
 class ThreatHypothesis(BaseModel):
     """A generated threat hypothesis from blockchain event analysis."""
 
-    threat_type: str = Field(..., description="Category: treasury_drain, hostile_transfer, smart_assembly_attack, unknown")
+    threat_type: str = Field(
+        ...,
+        description="Category: treasury_drain, hostile_transfer, smart_assembly_attack, unknown",
+    )
     hypothesis: str = Field(..., description="Specific, testable threat description")
-    evidence: list[str] = Field(default_factory=list, description="Supporting blockchain events")
+    evidence: list[str] = Field(
+        default_factory=list, description="Supporting blockchain events"
+    )
     estimated_severity: int = Field(..., ge=1, le=5, description="1=noise, 5=critical")
     suggested_response: str = Field(default="", description="Recommended action")
 
@@ -20,7 +25,12 @@ class ThreatEvaluation(BaseModel):
     """Evaluation of a threat hypothesis against warden doctrine."""
 
     outcome: str = Field(..., description="escalate|monitor|dismiss")
-    tier: int = Field(..., ge=1, le=4, description="Response tier: 1=log, 2=alert, 3=operator-required, 4=emergency")
+    tier: int = Field(
+        ...,
+        ge=1,
+        le=4,
+        description="Response tier: 1=log, 2=alert, 3=operator-required, 4=emergency",
+    )
     rationale: str = Field(..., description="Why this outcome")
     confidence: float = Field(..., ge=0.0, le=1.0)
 

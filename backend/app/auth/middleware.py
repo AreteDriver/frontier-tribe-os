@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -34,6 +36,10 @@ async def get_current_member(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Member not found"
         )
+
+    # Update last_active on every authenticated request
+    member.last_active = datetime.now(timezone.utc)
+    await db.commit()
 
     return member
 

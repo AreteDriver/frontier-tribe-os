@@ -151,7 +151,9 @@ class WardenEngine:
             "running": self._running,
             "total_cycles": self._cycle_count,
             "total_alerts": len(self._alerts),
-            "unacknowledged_alerts": sum(1 for a in self._alerts if not a.get("acknowledged")),
+            "unacknowledged_alerts": sum(
+                1 for a in self._alerts if not a.get("acknowledged")
+            ),
             "last_cycle_at": self._history[-1].timestamp if self._history else None,
             "doctrine_loaded": bool(self._doctrine),
         }
@@ -282,18 +284,20 @@ class WardenEngine:
                         self.tribe_id,
                         self._cycle_count,
                     )
-                    self._append_audit(WardenCycleRecord(
-                        cycle=self._cycle_count,
-                        tribe_id=self.tribe_id,
-                        hypothesis="(cycle error)",
-                        threat_type="error",
-                        severity=0,
-                        evaluation_outcome="error",
-                        tier=0,
-                        rationale="Unhandled exception — see logs",
-                        events_ingested=0,
-                        timestamp=datetime.now(UTC).isoformat(),
-                    ))
+                    self._append_audit(
+                        WardenCycleRecord(
+                            cycle=self._cycle_count,
+                            tribe_id=self.tribe_id,
+                            hypothesis="(cycle error)",
+                            threat_type="error",
+                            severity=0,
+                            evaluation_outcome="error",
+                            tier=0,
+                            rationale="Unhandled exception — see logs",
+                            events_ingested=0,
+                            timestamp=datetime.now(UTC).isoformat(),
+                        )
+                    )
                     self._cycle_count += 1
 
                 # Wait for next cycle interval (or stop signal)
@@ -322,7 +326,9 @@ class WardenEngine:
         """Fetch recent blockchain events for the tribe address."""
         from app.api import sui
 
-        transactions = await sui.get_transactions_for_address(self.tribe_address, limit=20)
+        transactions = await sui.get_transactions_for_address(
+            self.tribe_address, limit=20
+        )
         events: list[dict[str, Any]] = []
 
         for tx in transactions:
@@ -330,24 +336,28 @@ class WardenEngine:
             effects = tx.get("effects", {})
             status = effects.get("status", {}).get("status", "unknown")
 
-            events.append({
-                "tx_digest": digest,
-                "status": status,
-                "gas_used": effects.get("gasUsed", {}),
-                "timestamp": tx.get("timestampMs"),
-            })
+            events.append(
+                {
+                    "tx_digest": digest,
+                    "status": status,
+                    "gas_used": effects.get("gasUsed", {}),
+                    "timestamp": tx.get("timestampMs"),
+                }
+            )
 
             # Get detailed info for balance changes
             details = await sui.get_transaction_details(digest)
             if details and "balanceChanges" in details:
                 for change in details["balanceChanges"]:
-                    events.append({
-                        "type": "balance_change",
-                        "tx_digest": digest,
-                        "owner": change.get("owner", {}).get("AddressOwner", ""),
-                        "coin_type": change.get("coinType", ""),
-                        "amount": change.get("amount", "0"),
-                    })
+                    events.append(
+                        {
+                            "type": "balance_change",
+                            "tx_digest": digest,
+                            "owner": change.get("owner", {}).get("AddressOwner", ""),
+                            "coin_type": change.get("coinType", ""),
+                            "amount": change.get("amount", "0"),
+                        }
+                    )
 
         return events
 
@@ -372,7 +382,9 @@ class WardenEngine:
         prompt = HYPOTHESIS_PROMPT.format(
             doctrine=self._doctrine,
             events=json.dumps(events[:10], indent=2, default=str),
-            prior_cycles=prior_json if self._history else "(first cycle — no prior results)",
+            prior_cycles=prior_json
+            if self._history
+            else "(first cycle — no prior results)",
         )
 
         if generator:
@@ -382,7 +394,9 @@ class WardenEngine:
                 threat_type=data.get("threat_type", "unknown"),
                 hypothesis=data.get("hypothesis", "No hypothesis generated"),
                 evidence=data.get("evidence", []),
-                estimated_severity=min(max(int(data.get("estimated_severity", 1)), 1), 5),
+                estimated_severity=min(
+                    max(int(data.get("estimated_severity", 1)), 1), 5
+                ),
                 suggested_response=data.get("suggested_response", ""),
             )
 

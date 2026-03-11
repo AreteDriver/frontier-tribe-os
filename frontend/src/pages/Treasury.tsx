@@ -13,6 +13,23 @@ interface WalletBalances {
   balances: Balance[];
 }
 
+interface MemberBalance {
+  member_id: string;
+  character_name: string | null;
+  role: string;
+  address: string;
+  balances: Balance[];
+}
+
+interface TreasurySummary {
+  tribe_name: string;
+  treasury_address: string | null;
+  treasury_balances: Balance[];
+  member_count: number;
+  total_transactions: number;
+  members_with_balances: MemberBalance[];
+}
+
 interface Transaction {
   id: string;
   tx_digest: string;
@@ -38,10 +55,18 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+function formatBalance(b: Balance): string {
+  return b.coin_type.includes('::sui::SUI') ? formatSui(b.total_balance) : b.total_balance;
+}
+
+function coinLabel(coinType: string): string {
+  return coinType.includes('::sui::SUI') ? 'SUI' : truncateAddress(coinType);
+}
+
 export default function Treasury() {
   const tribeId = localStorage.getItem('tribeId');
   const { currentWallet } = useCurrentWallet();
-  const [treasuryBalances, setTreasuryBalances] = useState<WalletBalances | null>(null);
+  const [summary, setSummary] = useState<TreasurySummary | null>(null);
   const [myBalances, setMyBalances] = useState<WalletBalances | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,12 +82,12 @@ export default function Treasury() {
     setLoading(true);
     setError('');
     try {
-      const [tbRes, myRes, txRes] = await Promise.all([
-        api.get(`/ledger/tribes/${tribeId}/balances`).catch(() => null),
+      const [summaryRes, myRes, txRes] = await Promise.all([
+        api.get(`/ledger/tribes/${tribeId}/summary`).catch(() => null),
         api.get('/ledger/members/me/balances').catch(() => null),
         api.get(`/ledger/tribes/${tribeId}/transactions`).catch(() => null),
       ]);
-      if (tbRes) setTreasuryBalances(tbRes.data);
+      if (summaryRes) setSummary(summaryRes.data);
       if (myRes) setMyBalances(myRes.data);
       if (txRes) setTransactions(txRes.data);
     } catch {
@@ -96,27 +121,49 @@ export default function Treasury() {
         </p>
       )}
 
+      {/* Summary Stats */}
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-[var(--color-primary)]">{summary.member_count}</div>
+            <div className="text-xs text-[var(--color-text-dim)]">Members</div>
+          </div>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-[var(--color-primary)]">{summary.total_transactions}</div>
+            <div className="text-xs text-[var(--color-text-dim)]">Transactions</div>
+          </div>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-[var(--color-primary)]">
+              {summary.treasury_balances.find((b) => b.coin_type.includes('::sui::SUI'))
+                ? formatSui(summary.treasury_balances.find((b) => b.coin_type.includes('::sui::SUI'))!.total_balance)
+                : '0'}
+            </div>
+            <div className="text-xs text-[var(--color-text-dim)]">Treasury SUI</div>
+          </div>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-[var(--color-primary)]">{summary.members_with_balances.length}</div>
+            <div className="text-xs text-[var(--color-text-dim)]">Wallets Tracked</div>
+          </div>
+        </div>
+      )}
+
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Treasury Balance */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-3">Tribe Treasury</h3>
-          {treasuryBalances ? (
+          {summary?.treasury_address ? (
             <>
               <p className="text-xs text-[var(--color-text-dim)] mb-2">
-                {truncateAddress(treasuryBalances.address)}
+                {truncateAddress(summary.treasury_address)}
               </p>
-              {treasuryBalances.balances.length === 0 ? (
+              {summary.treasury_balances.length === 0 ? (
                 <p className="text-[var(--color-text-dim)] text-sm">No balances</p>
               ) : (
-                treasuryBalances.balances.map((b, i) => (
+                summary.treasury_balances.map((b, i) => (
                   <div key={i} className="flex justify-between items-baseline mb-1">
-                    <span className="text-xs text-[var(--color-text-dim)]">
-                      {b.coin_type.includes('::sui::SUI') ? 'SUI' : truncateAddress(b.coin_type)}
-                    </span>
-                    <span className="text-lg font-bold text-[var(--color-primary)]">
-                      {b.coin_type.includes('::sui::SUI') ? formatSui(b.total_balance) : b.total_balance}
-                    </span>
+                    <span className="text-xs text-[var(--color-text-dim)]">{coinLabel(b.coin_type)}</span>
+                    <span className="text-lg font-bold text-[var(--color-primary)]">{formatBalance(b)}</span>
                   </div>
                 ))
               )}
@@ -141,12 +188,8 @@ export default function Treasury() {
               ) : (
                 myBalances.balances.map((b, i) => (
                   <div key={i} className="flex justify-between items-baseline mb-1">
-                    <span className="text-xs text-[var(--color-text-dim)]">
-                      {b.coin_type.includes('::sui::SUI') ? 'SUI' : truncateAddress(b.coin_type)}
-                    </span>
-                    <span className="text-lg font-bold text-[var(--color-primary)]">
-                      {b.coin_type.includes('::sui::SUI') ? formatSui(b.total_balance) : b.total_balance}
-                    </span>
+                    <span className="text-xs text-[var(--color-text-dim)]">{coinLabel(b.coin_type)}</span>
+                    <span className="text-lg font-bold text-[var(--color-primary)]">{formatBalance(b)}</span>
                   </div>
                 ))
               )}
@@ -158,6 +201,33 @@ export default function Treasury() {
           )}
         </div>
       </div>
+
+      {/* Member Balances */}
+      {summary && summary.members_with_balances.length > 0 && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
+          <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-4">Member Wallets</h3>
+          <div className="space-y-2">
+            {summary.members_with_balances.map((m) => (
+              <div key={m.member_id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
+                <div>
+                  <span className="font-medium text-sm">{m.character_name || 'Unknown'}</span>
+                  <span className="text-xs text-[var(--color-text-dim)] ml-2">{m.role}</span>
+                </div>
+                <div className="flex gap-3">
+                  {m.balances.map((b, i) => (
+                    <span key={i} className="text-sm text-[var(--color-primary)]">
+                      {formatBalance(b)} {coinLabel(b.coin_type)}
+                    </span>
+                  ))}
+                  {m.balances.length === 0 && (
+                    <span className="text-xs text-[var(--color-text-dim)]">No balance</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Transaction History */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">

@@ -46,3 +46,18 @@ class InventoryResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class MaterialGap(BaseModel):
+    item_id: str
+    item_name: str
+    required: int
+    held: int
+    deficit: int
+
+
+class GapAnalysisResponse(BaseModel):
+    total_jobs: int
+    jobs_materials_ready: int
+    jobs_blocked: int
+    material_gaps: list[MaterialGap]

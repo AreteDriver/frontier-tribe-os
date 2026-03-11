@@ -12,6 +12,28 @@ interface Job {
   created_at: string;
 }
 
+interface Blueprint {
+  type_id: string;
+  name: string;
+  category: string;
+  materials: { item_id: string; name: string; quantity: number }[];
+}
+
+interface MaterialGap {
+  item_id: string;
+  item_name: string;
+  required: number;
+  held: number;
+  deficit: number;
+}
+
+interface GapAnalysis {
+  total_jobs: number;
+  jobs_materials_ready: number;
+  jobs_blocked: number;
+  material_gaps: MaterialGap[];
+}
+
 const STATUS_COLUMNS = ['queued', 'in_progress', 'blocked', 'complete'] as const;
 const STATUS_COLORS: Record<string, string> = {
   queued: 'border-gray-500',
@@ -28,21 +50,30 @@ const STATUS_DOTS: Record<string, string> = {
 
 export default function Production() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
+  const [selectedBp, setSelectedBp] = useState('');
   const [newJobName, setNewJobName] = useState('');
   const [newJobQty, setNewJobQty] = useState(1);
+  const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const tribeId = localStorage.getItem('tribeId');
 
   useEffect(() => {
     if (!tribeId) return;
-    loadJobs();
+    loadAll();
   }, [tribeId]);
 
-  const loadJobs = async () => {
+  const loadAll = async () => {
     try {
-      const { data } = await api.get(`/forge/tribes/${tribeId}/jobs`);
-      setJobs(data);
+      const [jobsRes, bpRes, gapRes] = await Promise.all([
+        api.get(`/forge/tribes/${tribeId}/jobs`),
+        api.get('/forge/blueprints').catch(() => ({ data: [] })),
+        api.get(`/forge/tribes/${tribeId}/gap-analysis`).catch(() => ({ data: null })),
+      ]);
+      setJobs(jobsRes.data);
+      setBlueprints(bpRes.data);
+      if (gapRes.data) setGapAnalysis(gapRes.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load jobs');
     } finally {
@@ -51,9 +82,9 @@ export default function Production() {
   };
 
   const createJob = async () => {
-    const trimmedName = newJobName.trim();
-    if (!trimmedName || !tribeId) return;
-    if (trimmedName.length > 200) {
+    const bpName = selectedBp || newJobName.trim();
+    if (!bpName || !tribeId) return;
+    if (bpName.length > 200) {
       setError('Blueprint name too long (max 200 characters)');
       return;
     }
@@ -64,12 +95,13 @@ export default function Production() {
     setError('');
     try {
       await api.post(`/forge/tribes/${tribeId}/jobs`, {
-        blueprint_name: newJobName,
+        blueprint_name: bpName,
         quantity: newJobQty,
       });
+      setSelectedBp('');
       setNewJobName('');
       setNewJobQty(1);
-      loadJobs();
+      loadAll();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create job');
     }
@@ -79,7 +111,7 @@ export default function Production() {
     setError('');
     try {
       await api.patch(`/forge/tribes/${tribeId}/jobs/${jobId}`, { status });
-      loadJobs();
+      loadAll();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to update status');
     }
@@ -89,7 +121,7 @@ export default function Production() {
     setError('');
     try {
       await api.delete(`/forge/tribes/${tribeId}/jobs/${jobId}`);
-      loadJobs();
+      loadAll();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to delete job');
     }
@@ -119,20 +151,71 @@ export default function Production() {
         </div>
       )}
 
+      {/* Gap Analysis Panel */}
+      {gapAnalysis && gapAnalysis.material_gaps.length > 0 && (
+        <div className="bg-[var(--color-surface)] border border-amber-800/30 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-amber-400">Material Gaps</h3>
+            <div className="flex gap-3 text-xs text-[var(--color-text-dim)]">
+              <span>{gapAnalysis.total_jobs} active jobs</span>
+              <span>{gapAnalysis.jobs_materials_ready} ready</span>
+              <span className="text-red-400">{gapAnalysis.jobs_blocked} blocked</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {gapAnalysis.material_gaps.map((gap) => (
+              <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-2">
+                <span className="text-sm">{gap.item_name}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-[var(--color-text-dim)]">{gap.held}/{gap.required}</span>
+                  <span className="text-red-400 font-medium">-{gap.deficit}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Create job form */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <label className="block text-xs text-[var(--color-text-dim)] mb-1">Blueprint</label>
-            <input
-              type="text"
-              placeholder="e.g. Fighter Ship"
-              value={newJobName}
-              onChange={(e) => setNewJobName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && createJob()}
-              className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
+            {blueprints.length > 0 ? (
+              <select
+                value={selectedBp}
+                onChange={(e) => { setSelectedBp(e.target.value); setNewJobName(''); }}
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)] cursor-pointer"
+              >
+                <option value="">Select blueprint...</option>
+                {blueprints.map((bp) => (
+                  <option key={bp.type_id} value={bp.type_id}>{bp.name} ({bp.category})</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="e.g. Fighter Ship"
+                value={newJobName}
+                onChange={(e) => setNewJobName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && createJob()}
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            )}
           </div>
+          {blueprints.length > 0 && (
+            <div className="flex-1">
+              <label className="block text-xs text-[var(--color-text-dim)] mb-1">Or custom name</label>
+              <input
+                type="text"
+                placeholder="Custom blueprint..."
+                value={newJobName}
+                onChange={(e) => { setNewJobName(e.target.value); setSelectedBp(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && createJob()}
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            </div>
+          )}
           <div className="w-24">
             <label className="block text-xs text-[var(--color-text-dim)] mb-1">Qty</label>
             <input
@@ -188,6 +271,11 @@ export default function Production() {
                         <span className="text-green-400" title="Materials ready">&#10003; mats</span>
                       )}
                     </div>
+                    {job.assigned_name && (
+                      <div className="text-xs text-[var(--color-text-dim)]">
+                        Assigned: <span className="text-[var(--color-text)]">{job.assigned_name}</span>
+                      </div>
+                    )}
                     <div className="flex gap-1 flex-wrap">
                       {STATUS_COLUMNS.filter((s) => s !== status).map((s) => (
                         <button

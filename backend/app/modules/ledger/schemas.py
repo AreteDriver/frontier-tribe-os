@@ -37,3 +37,20 @@ class TransferRecord(BaseModel):
     amount: str
     coin_type: str = "0x2::sui::SUI"
     memo: str | None = None
+
+
+class MemberBalance(BaseModel):
+    member_id: UUID
+    character_name: str | None
+    role: str
+    address: str
+    balances: list[BalanceResponse]
+
+
+class TreasurySummary(BaseModel):
+    tribe_name: str
+    treasury_address: str | None
+    treasury_balances: list[BalanceResponse]
+    member_count: int
+    total_transactions: int
+    members_with_balances: list[MemberBalance]

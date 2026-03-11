@@ -141,6 +141,9 @@ frontier-tribe-os/
 - `/tribes/{tribe_id}/inventory`
 - `/tribes/{tribe_id}/jobs`
 - `/tribes/{tribe_id}/jobs/{job_id}`
+- `/tribes/{tribe_id}/gap-analysis`
+- `/tribes/{tribe_id}/summary`
+- `/blueprints`
 
 ### Enums/Constants
 - `BASE_URL`

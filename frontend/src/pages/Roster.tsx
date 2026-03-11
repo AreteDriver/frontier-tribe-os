@@ -6,9 +6,11 @@ interface Member {
   wallet_address: string;
   character_name: string | null;
   role: string;
+  ship_class: string | null;
   timezone: string | null;
   last_active: string | null;
   joined_at: string;
+  is_active: boolean;
 }
 
 interface JoinRequest {
@@ -72,6 +74,8 @@ export default function Roster() {
     }
   };
 
+  const activeCount = members.filter((m) => m.is_active).length;
+
   if (!tribeId) {
     return (
       <div className="max-w-4xl mx-auto space-y-4">
@@ -97,7 +101,10 @@ export default function Roster() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
-        <span className="text-sm text-[var(--color-text-dim)]">{members.length} member{members.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-3 text-sm text-[var(--color-text-dim)]">
+          <span>{members.length} member{members.length !== 1 ? 's' : ''}</span>
+          <span className="text-green-400">{activeCount} active</span>
+        </div>
       </div>
 
       {error && (
@@ -139,13 +146,15 @@ export default function Roster() {
       )}
 
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-x-auto">
-        <table className="w-full text-sm min-w-[600px]">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="border-b border-[var(--color-border)] text-[var(--color-text-dim)]">
               <th className="text-left px-4 py-3">Character</th>
+              <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3">Role</th>
+              <th className="text-left px-4 py-3">Ship Class</th>
               <th className="text-left px-4 py-3">Wallet</th>
-              <th className="text-left px-4 py-3">Joined</th>
+              <th className="text-left px-4 py-3">Last Active</th>
               <th className="text-left px-4 py-3">Actions</th>
             </tr>
           </thead>
@@ -154,15 +163,24 @@ export default function Roster() {
               <tr key={m.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-hover)]">
                 <td className="px-4 py-3 font-medium">{m.character_name || 'Unknown'}</td>
                 <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1.5 text-xs ${m.is_active ? 'text-green-400' : 'text-gray-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${m.is_active ? 'bg-green-400' : 'bg-gray-600'}`} />
+                    {m.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGES[m.role] || ''}`}>
                     {m.role}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-[var(--color-text-dim)] text-xs">
+                  {m.ship_class || '—'}
+                </td>
                 <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-dim)]">
                   {m.wallet_address.slice(0, 8)}...{m.wallet_address.slice(-4)}
                 </td>
-                <td className="px-4 py-3 text-[var(--color-text-dim)]">
-                  {new Date(m.joined_at).toLocaleDateString()}
+                <td className="px-4 py-3 text-xs text-[var(--color-text-dim)]">
+                  {m.last_active ? new Date(m.last_active).toLocaleDateString() : 'Never'}
                 </td>
                 <td className="px-4 py-3">
                   {m.role !== 'leader' && (

@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -99,7 +99,22 @@ async def list_members(
     result = await db.execute(
         select(Member).where(Member.tribe_id == tribe_id).order_by(Member.joined_at)
     )
-    return result.scalars().all()
+    members = result.scalars().all()
+    now = datetime.now(timezone.utc)
+    inactive_threshold = now - timedelta(days=7)
+    responses = []
+    for m in members:
+        resp = MemberResponse.model_validate(m)
+        if m.last_active:
+            last = (
+                m.last_active.replace(tzinfo=timezone.utc)
+                if m.last_active.tzinfo is None
+                else m.last_active
+            )
+            if last < inactive_threshold:
+                resp.is_active = False
+        responses.append(resp)
+    return responses
 
 
 @router.post("/tribes/join/{invite_code}", status_code=status.HTTP_201_CREATED)
