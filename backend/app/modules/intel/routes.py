@@ -31,12 +31,16 @@ from .schemas import (
     BattleTimelineEntry,
     CorpLeaderboardEntry,
     CorpProfileResponse,
+    GlobalSearchResponse,
     HourlyKills,
     KillmailDetailResponse,
     KillmailResponse,
     KillmailStatsResponse,
     PilotProfileResponse,
     PilotSearchResult,
+    SearchCorpResult,
+    SearchPilotResult,
+    SearchZoneResult,
     TopKiller,
     TopSystem,
 )
@@ -44,6 +48,75 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/intel", tags=["intel"])
+
+
+@router.get("/search", response_model=GlobalSearchResponse)
+async def global_search(
+    q: str = Query(..., min_length=2, description="Search query (min 2 chars)"),
+    member: Member = Depends(get_current_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified search across pilots, corps, and zones."""
+    pattern = f"%{q}%"
+
+    # --- Pilots: ILIKE on killer_name and victim_name ---
+    killer_q = select(
+        Killmail.killer_address.label("address"),
+        Killmail.killer_name.label("name"),
+    ).where(Killmail.killer_name.ilike(pattern))
+
+    victim_q = select(
+        Killmail.victim_address.label("address"),
+        Killmail.victim_name.label("name"),
+    ).where(Killmail.victim_name.ilike(pattern))
+
+    pilot_result = await db.execute(killer_q.union(victim_q).limit(10))
+    seen_pilots: dict[str, SearchPilotResult] = {}
+    for row in pilot_result.all():
+        addr = row[0]
+        if addr not in seen_pilots:
+            seen_pilots[addr] = SearchPilotResult(address=addr, name=row[1])
+        if len(seen_pilots) >= 5:
+            break
+    pilots = list(seen_pilots.values())
+
+    # --- Corps: ILIKE on killer_corp_name and victim_corp_name ---
+    killer_corp_q = select(
+        Killmail.killer_corp_id.label("corp_id"),
+        Killmail.killer_corp_name.label("corp_name"),
+    ).where(
+        Killmail.killer_corp_name.ilike(pattern),
+        Killmail.killer_corp_id.is_not(None),
+    )
+
+    victim_corp_q = select(
+        Killmail.victim_corp_id.label("corp_id"),
+        Killmail.victim_corp_name.label("corp_name"),
+    ).where(
+        Killmail.victim_corp_name.ilike(pattern),
+        Killmail.victim_corp_id.is_not(None),
+    )
+
+    corp_result = await db.execute(killer_corp_q.union(victim_corp_q).limit(10))
+    seen_corps: dict[int, SearchCorpResult] = {}
+    for row in corp_result.all():
+        cid = row[0]
+        if cid not in seen_corps:
+            seen_corps[cid] = SearchCorpResult(corp_id=cid, corp_name=row[1])
+        if len(seen_corps) >= 5:
+            break
+    corps = list(seen_corps.values())
+
+    # --- Zones: ILIKE on name ---
+    zone_result = await db.execute(
+        select(OrbitalZone).where(OrbitalZone.name.ilike(pattern)).limit(5)
+    )
+    zones = [
+        SearchZoneResult(zone_id=z.zone_id, name=z.name, id=z.id)
+        for z in zone_result.scalars().all()
+    ]
+
+    return GlobalSearchResponse(pilots=pilots, corps=corps, zones=zones)
 
 
 @router.get("/killmails/stats", response_model=KillmailStatsResponse)

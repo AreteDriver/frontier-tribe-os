@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -6,6 +6,28 @@ interface CycleInfo {
   cycle: number;
   cycle_name: string;
   days_elapsed: number;
+}
+
+interface SearchPilot {
+  address: string;
+  name: string | null;
+}
+
+interface SearchCorp {
+  corp_id: number;
+  corp_name: string | null;
+}
+
+interface SearchZone {
+  zone_id: string;
+  name: string;
+  id: string;
+}
+
+interface SearchResults {
+  pilots: SearchPilot[];
+  corps: SearchCorp[];
+  zones: SearchZone[];
 }
 
 const navItems = [
@@ -23,10 +45,57 @@ export default function Layout() {
   const navigate = useNavigate();
   const characterName = localStorage.getItem('characterName') || 'Pilot';
   const [cycle, setCycle] = useState<CycleInfo | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.get('/watch/cycle').then((res) => setCycle(res.data)).catch(() => {});
   }, []);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = (q: string) => {
+    setSearchQuery(q);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (q.length < 2) {
+      setSearchResults(null);
+      setShowResults(false);
+      return;
+    }
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/intel/search', { params: { q } });
+        setSearchResults(res.data);
+        setShowResults(true);
+      } catch {
+        setSearchResults(null);
+      }
+    }, 300);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowResults(false);
+    }
+  };
+
+  const closeAndNavigate = (path: string) => {
+    setShowResults(false);
+    setSearchQuery('');
+    navigate(path);
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -35,6 +104,12 @@ export default function Layout() {
     localStorage.removeItem('tribeId');
     navigate('/');
   };
+
+  const hasResults =
+    searchResults &&
+    (searchResults.pilots.length > 0 ||
+      searchResults.corps.length > 0 ||
+      searchResults.zones.length > 0);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -51,6 +126,91 @@ export default function Layout() {
             Tribe OS
           </h1>
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* Global Search */}
+            <div className="relative" ref={searchRef}>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)] text-xs pointer-events-none">
+                  &#x1F50D;
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search pilots, corps, zones..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => {
+                    if (searchQuery.length >= 2 && searchResults) setShowResults(true);
+                  }}
+                  className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded pl-8 pr-3 py-1.5 text-sm w-48 sm:w-64 focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                />
+              </div>
+              {showResults && hasResults && (
+                <div className="absolute top-full right-0 mt-1 w-72 bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {searchResults.pilots.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-xs font-bold text-[var(--color-text-dim)] uppercase tracking-wider border-b border-[var(--color-border)]">
+                        Pilots
+                      </div>
+                      {searchResults.pilots.map((p) => (
+                        <button
+                          key={p.address}
+                          onClick={() => closeAndNavigate(`/intel/pilots/${p.address}`)}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-border)] transition-colors cursor-pointer"
+                        >
+                          <span className="text-[var(--color-primary)]">{p.name || 'Unknown'}</span>
+                          <span className="text-xs text-[var(--color-text-dim)] ml-2">
+                            {p.address.slice(0, 10)}...
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchResults.corps.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-xs font-bold text-[var(--color-text-dim)] uppercase tracking-wider border-b border-[var(--color-border)]">
+                        Corps
+                      </div>
+                      {searchResults.corps.map((c) => (
+                        <button
+                          key={c.corp_id}
+                          onClick={() => closeAndNavigate(`/intel/corps/${c.corp_id}`)}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-border)] transition-colors cursor-pointer"
+                        >
+                          <span className="text-amber-300">{c.corp_name || 'Unknown Corp'}</span>
+                          <span className="text-xs text-[var(--color-text-dim)] ml-2">
+                            ID: {c.corp_id}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchResults.zones.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-xs font-bold text-[var(--color-text-dim)] uppercase tracking-wider border-b border-[var(--color-border)]">
+                        Zones
+                      </div>
+                      {searchResults.zones.map((z) => (
+                        <button
+                          key={z.id}
+                          onClick={() => closeAndNavigate('/systems')}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-border)] transition-colors cursor-pointer"
+                        >
+                          <span className="text-green-400">{z.name}</span>
+                          <span className="text-xs text-[var(--color-text-dim)] ml-2">
+                            {z.zone_id}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {showResults && searchResults && !hasResults && searchQuery.length >= 2 && (
+                <div className="absolute top-full right-0 mt-1 w-72 bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-lg z-50 px-3 py-3 text-sm text-[var(--color-text-dim)]">
+                  No results found.
+                </div>
+              )}
+            </div>
             <span className="text-sm text-[var(--color-text-dim)] hidden sm:inline">{characterName}</span>
             <button
               onClick={logout}

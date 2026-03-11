@@ -1,4 +1,4 @@
-"""Tests for Pilot Intelligence and Corp Intelligence endpoints."""
+"""Tests for Pilot Intelligence, Corp Intelligence, and Global Search endpoints."""
 
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Killmail
+from app.db.models import Killmail, OrbitalZone
 
 
 async def _seed_killmail(
@@ -219,3 +219,61 @@ async def test_corp_leaderboard_with_data(client, auth_headers, db_session):
     assert data[0]["kill_count"] == 3
     assert data[1]["corp_id"] == 800
     assert data[1]["kill_count"] == 1
+
+
+# --- Global Search ---
+
+
+@pytest.mark.asyncio
+async def test_global_search_empty(client, auth_headers):
+    """Query too short returns 422 (min_length=2 validation)."""
+    resp = await client.get("/intel/search", params={"q": "x"}, headers=auth_headers)
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_global_search_pilots(client, auth_headers, db_session):
+    """Search finds pilots by name."""
+    await _seed_killmail(
+        db_session,
+        kill_id=5000,
+        killer_address="0xsearchpilot1",
+        killer_name="NovaBlade",
+    )
+    await _seed_killmail(
+        db_session,
+        kill_id=5001,
+        victim_address="0xsearchpilot2",
+        victim_name="NovaStrike",
+    )
+
+    resp = await client.get("/intel/search", params={"q": "Nova"}, headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    addresses = {p["address"] for p in data["pilots"]}
+    assert "0xsearchpilot1" in addresses
+    assert "0xsearchpilot2" in addresses
+    assert len(data["pilots"]) <= 5
+
+
+@pytest.mark.asyncio
+async def test_global_search_zones(client, auth_headers, db_session):
+    """Search finds zones by name."""
+    zone = OrbitalZone(
+        id=uuid.uuid4(),
+        zone_id="zone-alpha-1",
+        name="Alpha Nexus",
+        feral_ai_tier=0,
+        cycle=5,
+    )
+    db_session.add(zone)
+    await db_session.commit()
+
+    resp = await client.get(
+        "/intel/search", params={"q": "Alpha"}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    zone_names = {z["name"] for z in data["zones"]}
+    assert "Alpha Nexus" in zone_names
+    assert data["zones"][0]["zone_id"] == "zone-alpha-1"

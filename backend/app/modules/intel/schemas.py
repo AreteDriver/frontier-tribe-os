@@ -186,3 +186,30 @@ class BattleDetailResponse(BaseModel):
     sides: list[BattleSide]
     timeline: list[BattleTimelineEntry]
     narrative: str | None = None
+
+
+# --- Global Search ---
+
+
+class SearchPilotResult(BaseModel):
+    address: str
+    name: str | None = None
+
+
+class SearchCorpResult(BaseModel):
+    corp_id: int
+    corp_name: str | None = None
+
+
+class SearchZoneResult(BaseModel):
+    zone_id: str
+    name: str
+    id: uuid.UUID
+
+
+class GlobalSearchResponse(BaseModel):
+    """Unified search results across pilots, corps, and zones."""
+
+    pilots: list[SearchPilotResult] = []
+    corps: list[SearchCorpResult] = []
+    zones: list[SearchZoneResult] = []
