@@ -11,12 +11,51 @@ interface Tribe {
   created_at: string;
 }
 
+interface MaterialGap {
+  item_id: string;
+  item_name: string;
+  required: number;
+  held: number;
+  deficit: number;
+}
+
+interface GapAnalysis {
+  total_jobs: number;
+  jobs_materials_ready: number;
+  jobs_blocked: number;
+  material_gaps: MaterialGap[];
+}
+
+interface TreasurySummary {
+  tribe_name: string;
+  treasury_address: string | null;
+  treasury_balances: { coin_type: string; total_balance: string; coin_object_count: number }[];
+  member_count: number;
+  total_transactions: number;
+}
+
+interface BlindSpotData {
+  count: number;
+  blind_spots: { zone_id: string; name: string; unseen_minutes: number }[];
+}
+
+function formatSui(mist: string): string {
+  const n = BigInt(mist);
+  const whole = n / BigInt(1_000_000_000);
+  const frac = n % BigInt(1_000_000_000);
+  if (frac === BigInt(0)) return whole.toString();
+  return `${whole}.${frac.toString().padStart(9, '0').replace(/0+$/, '')}`;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [tribe, setTribe] = useState<Tribe | null>(null);
   const [tribeName, setTribeName] = useState('');
   const [tribeShort, setTribeShort] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null);
+  const [treasury, setTreasury] = useState<TreasurySummary | null>(null);
+  const [blindSpots, setBlindSpots] = useState<BlindSpotData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -38,8 +77,17 @@ export default function Dashboard() {
     try {
       const { data } = await api.get(`/census/tribes/${tribeId}`);
       setTribe(data);
+
+      // Load summary data in parallel
+      const [gapRes, treasuryRes, blindRes] = await Promise.all([
+        api.get(`/forge/tribes/${tribeId}/gap-analysis`).catch(() => null),
+        api.get(`/ledger/tribes/${tribeId}/summary`).catch(() => null),
+        api.get('/watch/alerts/blind-spots').catch(() => null),
+      ]);
+      if (gapRes) setGapAnalysis(gapRes.data);
+      if (treasuryRes) setTreasury(treasuryRes.data);
+      if (blindRes) setBlindSpots(blindRes.data);
     } catch {
-      // Tribe may have been deleted — clear stale reference
       localStorage.removeItem('tribeId');
     } finally {
       setLoading(false);
@@ -120,6 +168,8 @@ export default function Dashboard() {
     }
   };
 
+  const suiBalance = treasury?.treasury_balances.find((b) => b.coin_type.includes('::sui::SUI'));
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto flex items-center justify-center py-12">
@@ -129,11 +179,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <h2 className="text-2xl font-bold">Welcome, {characterName}</h2>
 
       {tribe ? (
         <div className="space-y-4">
+          {/* Tribe Info Card */}
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-3">
               <h3 className="text-xl font-semibold text-[var(--color-primary)]">{tribe.name}</h3>
@@ -173,6 +224,75 @@ export default function Dashboard() {
             </button>
           </div>
 
+          {/* Summary Cards Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-primary)]">
+                {gapAnalysis?.total_jobs ?? 0}
+              </div>
+              <div className="text-xs text-[var(--color-text-dim)]">Active Jobs</div>
+            </div>
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+              <div className={`text-2xl font-bold ${gapAnalysis?.jobs_blocked ? 'text-red-400' : 'text-[var(--color-primary)]'}`}>
+                {gapAnalysis?.jobs_blocked ?? 0}
+              </div>
+              <div className="text-xs text-[var(--color-text-dim)]">Blocked</div>
+            </div>
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-primary)]">
+                {suiBalance ? formatSui(suiBalance.total_balance) : '0'}
+              </div>
+              <div className="text-xs text-[var(--color-text-dim)]">Treasury SUI</div>
+            </div>
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-primary)]">
+                {treasury?.total_transactions ?? 0}
+              </div>
+              <div className="text-xs text-[var(--color-text-dim)]">Transactions</div>
+            </div>
+          </div>
+
+          {/* Material Gaps Alert */}
+          {gapAnalysis && gapAnalysis.material_gaps.length > 0 && (
+            <div className="bg-[var(--color-surface)] border border-amber-800/30 rounded-lg p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-amber-400">Material Shortages</h3>
+                <button
+                  onClick={() => navigate('/production')}
+                  className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-primary)] cursor-pointer"
+                >
+                  View in Forge &rarr;
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {gapAnalysis.material_gaps.slice(0, 6).map((gap) => (
+                  <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-1.5 text-xs">
+                    <span>{gap.item_name}</span>
+                    <span className="text-red-400 font-medium">-{gap.deficit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Blind Spots Alert */}
+          {blindSpots && blindSpots.count > 0 && (
+            <div className="bg-[var(--color-surface)] border border-yellow-800/30 rounded-lg p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-yellow-400">
+                Blind Spots ({blindSpots.count})
+              </h3>
+              <div className="space-y-1">
+                {blindSpots.blind_spots.slice(0, 5).map((bs) => (
+                  <div key={bs.zone_id} className="flex items-center justify-between text-xs">
+                    <span>{bs.name}</span>
+                    <span className="text-yellow-400">{bs.unseen_minutes}m unseen</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Module Nav Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/roster')}

@@ -1,5 +1,6 @@
 """Watch module — C5 cycle tracking, orbital zones, scans, clones, crowns."""
 
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_current_member
+from app.config import settings
 from app.db.models import (
     CURRENT_CYCLE,
     Clone,
@@ -18,6 +20,7 @@ from app.db.models import (
     Scan,
 )
 from app.db.session import get_db
+from app.notifications.notifier import DiscordNotifier
 
 from .schemas import (
     CloneQueueResponse,
@@ -32,7 +35,17 @@ from .schemas import (
     ScanResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/watch", tags=["watch"])
+
+
+def _get_notifier() -> DiscordNotifier:
+    return DiscordNotifier(
+        webhook_url=settings.discord_webhook_url,
+        dry_run=not settings.discord_webhook_url,
+    )
+
 
 # C5 reset timestamp — update when cycle starts
 CYCLE_RESET_AT = "2026-03-11T00:00:00Z"
@@ -203,6 +216,13 @@ async def submit_scan(
     zone.last_scanned = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(scan)
+
+    # Fire Discord alert on HOSTILE scan
+    if body.result_type == "HOSTILE":
+        notifier = _get_notifier()
+        scanner_name = member.character_name or "Unknown"
+        await notifier.hostile_scan(zone=zone.name, scanner=scanner_name)
+
     return scan
 
 
@@ -310,3 +330,57 @@ async def crown_roster(
         crown_type_distribution=distribution,
         crowns=[CrownResponse.model_validate(c) for c in crowns],
     )
+
+
+# --- Alerts ---
+
+BLIND_SPOT_MINUTES = 20
+
+
+@router.get("/alerts/blind-spots")
+async def check_blind_spots(
+    member: Member = Depends(get_current_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check for zones not scanned in >20 min and fire alerts."""
+    now = datetime.now(timezone.utc)
+    threshold = now - timedelta(minutes=BLIND_SPOT_MINUTES)
+
+    result = await db.execute(
+        select(OrbitalZone).where(OrbitalZone.cycle == CURRENT_CYCLE)
+    )
+    zones = result.scalars().all()
+
+    blind_spots = []
+    notifier = _get_notifier()
+    for z in zones:
+        last = z.last_scanned
+        if last is None or (
+            (last.replace(tzinfo=timezone.utc) if last.tzinfo is None else last)
+            < threshold
+        ):
+            minutes = (
+                int((now - last.replace(tzinfo=timezone.utc)).total_seconds() / 60)
+                if last
+                else 999
+            )
+            blind_spots.append(
+                {"zone_id": z.zone_id, "name": z.name, "unseen_minutes": minutes}
+            )
+            await notifier.blind_spot(zone=z.name, minutes=minutes)
+
+    return {"blind_spots": blind_spots, "count": len(blind_spots)}
+
+
+@router.post("/alerts/test")
+async def test_alert(
+    member: Member = Depends(get_current_member),
+):
+    """Send a test alert to verify Discord webhook is configured."""
+    notifier = _get_notifier()
+    sent = await notifier.send_alert("feral_ai_evolved", zone="Test Zone", tier=1)
+    return {
+        "sent": sent,
+        "dry_run": notifier.dry_run,
+        "webhook_configured": bool(settings.discord_webhook_url),
+    }
