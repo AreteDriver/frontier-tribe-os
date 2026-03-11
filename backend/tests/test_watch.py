@@ -221,3 +221,141 @@ async def test_crown_roster_with_tribe(client, tribe_with_leader):
     assert data["total_members"] == 1
     assert data["members_with_crowns"] == 0
     assert data["crown_type_distribution"] == {}
+
+
+# --- Signature Resolution System ---
+
+
+@pytest.mark.asyncio
+async def test_scan_with_signature(client, auth_headers):
+    """Scan with signature type and resolution returns computed labels."""
+    zone_resp = await client.post(
+        "/watch/orbital-zones",
+        json={"zone_id": "zone-sig-1", "name": "Signature Zone"},
+        headers=auth_headers,
+    )
+    zone_id = zone_resp.json()["id"]
+
+    resp = await client.post(
+        "/watch/scans",
+        json={
+            "zone_id": zone_id,
+            "result_type": "ANOMALY",
+            "signature_type": "EM",
+            "resolution": 60,
+            "confidence": 80,
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["signature_type"] == "EM"
+    assert data["resolution"] == 60
+    assert data["resolution_label"] == "IDENTIFIED"
+
+
+@pytest.mark.asyncio
+async def test_scan_resolution_labels(client, auth_headers):
+    """Resolution labels graduate correctly: UNRESOLVED → PARTIAL → IDENTIFIED → FULL_INTEL."""
+    zone_resp = await client.post(
+        "/watch/orbital-zones",
+        json={"zone_id": "zone-res-labels", "name": "Resolution Zone"},
+        headers=auth_headers,
+    )
+    zone_id = zone_resp.json()["id"]
+
+    cases = [
+        (0, "UNRESOLVED"),
+        (10, "UNRESOLVED"),
+        (25, "PARTIAL"),
+        (50, "IDENTIFIED"),
+        (75, "FULL_INTEL"),
+        (100, "FULL_INTEL"),
+    ]
+    for resolution, expected_label in cases:
+        resp = await client.post(
+            "/watch/scans",
+            json={
+                "zone_id": zone_id,
+                "result_type": "CLEAR",
+                "resolution": resolution,
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["resolution_label"] == expected_label, (
+            f"resolution={resolution} expected {expected_label}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_scan_invalid_signature_type(client, auth_headers):
+    """Invalid signature_type returns 400."""
+    zone_resp = await client.post(
+        "/watch/orbital-zones",
+        json={"zone_id": "zone-bad-sig", "name": "Bad Sig Zone"},
+        headers=auth_headers,
+    )
+    zone_id = zone_resp.json()["id"]
+
+    resp = await client.post(
+        "/watch/scans",
+        json={
+            "zone_id": zone_id,
+            "result_type": "ANOMALY",
+            "signature_type": "PLASMA",
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_scan_feed_includes_signature_data(client, auth_headers):
+    """Scan feed includes signature_type and resolution_label."""
+    zone_resp = await client.post(
+        "/watch/orbital-zones",
+        json={"zone_id": "zone-feed-sig", "name": "Feed Sig Zone"},
+        headers=auth_headers,
+    )
+    zone_id = zone_resp.json()["id"]
+
+    await client.post(
+        "/watch/scans",
+        json={
+            "zone_id": zone_id,
+            "result_type": "HOSTILE",
+            "signature_type": "HEAT",
+            "resolution": 80,
+        },
+        headers=auth_headers,
+    )
+
+    resp = await client.get("/watch/scans/feed", headers=auth_headers)
+    assert resp.status_code == 200
+    scans = resp.json()
+    heat_scans = [s for s in scans if s.get("signature_type") == "HEAT"]
+    assert len(heat_scans) >= 1
+    assert heat_scans[0]["resolution_label"] == "FULL_INTEL"
+
+
+@pytest.mark.asyncio
+async def test_scan_defaults_no_signature(client, auth_headers):
+    """Scan without signature fields uses defaults."""
+    zone_resp = await client.post(
+        "/watch/orbital-zones",
+        json={"zone_id": "zone-no-sig", "name": "No Sig Zone"},
+        headers=auth_headers,
+    )
+    zone_id = zone_resp.json()["id"]
+
+    resp = await client.post(
+        "/watch/scans",
+        json={"zone_id": zone_id, "result_type": "CLEAR"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["signature_type"] is None
+    assert data["resolution"] == 0
+    assert data["resolution_label"] == "UNRESOLVED"

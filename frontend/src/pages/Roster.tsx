@@ -99,8 +99,8 @@ export default function Roster() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Census — Tribe Roster</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold">Census — Tribe Roster</h2>
         <div className="flex items-center gap-3 text-sm text-[var(--color-text-dim)]">
           <span>{members.length} member{members.length !== 1 ? 's' : ''}</span>
           <span className="text-green-400">{activeCount} active</span>
@@ -114,19 +114,19 @@ export default function Roster() {
       )}
 
       {requests.length > 0 && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-warning)]/50 rounded-lg p-4 space-y-3">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-warning)]/50 rounded-lg p-3 sm:p-4 space-y-3">
           <h3 className="text-sm font-semibold text-[var(--color-warning)]">
             Pending Requests ({requests.length})
           </h3>
           {requests.map((req) => (
-            <div key={req.id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
-              <div>
+            <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-[var(--color-border)] last:border-0">
+              <div className="min-w-0">
                 <span className="font-medium">{req.character_name || 'Unknown'}</span>
                 <span className="text-xs text-[var(--color-text-dim)] ml-2 font-mono">
-                  {req.wallet_address.slice(0, 10)}...
+                  {req.wallet_address.slice(0, 8)}...
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => handleRequest(req.id, 'approve')}
                   className="px-3 py-1 rounded text-sm bg-[var(--color-primary)] text-black hover:bg-[var(--color-primary-dim)] cursor-pointer"

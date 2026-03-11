@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Discord
     discord_webhook_url: str = ""
 
+    # Poller
+    enable_poller: bool = False
+
     # CORS
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 

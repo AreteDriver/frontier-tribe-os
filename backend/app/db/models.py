@@ -238,7 +238,13 @@ class FeralAIEvent(Base):
 
 
 class Scan(Base):
-    """Void scan result submitted by a scanner."""
+    """Void scan result submitted by a scanner.
+
+    Signature Resolution System (C5):
+    - signature_type: EM, HEAT, GRAVIMETRIC, RADAR, UNKNOWN
+    - resolution: 0-100 graduated visibility (0=unresolved, 100=full intel)
+    - environmental modifiers affect detection quality
+    """
 
     __tablename__ = "scans"
 
@@ -250,8 +256,17 @@ class Scan(Base):
     result_type: Mapped[str] = mapped_column(
         String(50), nullable=False
     )  # CLEAR, ANOMALY, HOSTILE, UNKNOWN
+    signature_type: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # EM, HEAT, GRAVIMETRIC, RADAR, UNKNOWN
+    resolution: Mapped[int] = mapped_column(
+        Integer, default=0
+    )  # 0-100 graduated visibility
     result_data: Mapped[str | None] = mapped_column(Text)  # JSON blob
     confidence: Mapped[int] = mapped_column(Integer, default=100)  # 0-100
+    environment: Mapped[str | None] = mapped_column(
+        String(100)
+    )  # Environmental conditions affecting scan
     cycle: Mapped[int] = mapped_column(Integer, default=CURRENT_CYCLE)
     scanned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

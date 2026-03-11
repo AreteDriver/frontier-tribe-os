@@ -16,7 +16,11 @@ interface ScanResult {
   zone_id: string;
   scanner_id: string | null;
   result_type: string;
+  signature_type: string | null;
+  resolution: number;
+  resolution_label: string;
   confidence: number;
+  environment: string | null;
   scanned_at: string;
 }
 
@@ -54,6 +58,21 @@ const SCAN_COLORS: Record<string, string> = {
   UNKNOWN: 'text-gray-400 bg-gray-900/30',
 };
 
+const SIG_COLORS: Record<string, string> = {
+  EM: 'text-cyan-400',
+  HEAT: 'text-orange-400',
+  GRAVIMETRIC: 'text-indigo-400',
+  RADAR: 'text-emerald-400',
+  UNKNOWN: 'text-gray-500',
+};
+
+const RESOLUTION_COLORS: Record<string, string> = {
+  UNRESOLVED: 'bg-gray-600',
+  PARTIAL: 'bg-amber-500',
+  IDENTIFIED: 'bg-blue-500',
+  FULL_INTEL: 'bg-green-500',
+};
+
 const TIER_BARS = [
   'bg-green-500',
   'bg-amber-500',
@@ -84,6 +103,8 @@ export default function Watch() {
   // Scan submission
   const [scanZoneId, setScanZoneId] = useState('');
   const [scanType, setScanType] = useState('CLEAR');
+  const [scanSigType, setScanSigType] = useState('');
+  const [scanResolution, setScanResolution] = useState(0);
   const [scanConf, setScanConf] = useState(100);
 
   // Zone creation
@@ -141,6 +162,8 @@ export default function Watch() {
       await api.post('/watch/scans', {
         zone_id: scanZoneId,
         result_type: scanType,
+        signature_type: scanSigType || null,
+        resolution: scanResolution,
         confidence: scanConf,
       });
       loadAll();
@@ -166,8 +189,8 @@ export default function Watch() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Watch — C5 Intel</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold">Watch — C5 Intel</h2>
         <div className="flex gap-3 text-xs">
           <span className="text-[var(--color-text-dim)]">{zones.length} zones</span>
           {criticalZones > 0 && <span className="text-purple-400">{criticalZones} CRITICAL</span>}
@@ -212,8 +235,8 @@ export default function Watch() {
 
       {/* Blind Spots Alert */}
       {blindSpots.length > 0 && (
-        <div className="bg-yellow-900/10 border border-yellow-800/30 rounded-lg p-3 flex items-center gap-3">
-          <span className="text-yellow-400 text-sm font-semibold">BLIND SPOTS</span>
+        <div className="bg-yellow-900/10 border border-yellow-800/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <span className="text-yellow-400 text-sm font-semibold shrink-0">BLIND SPOTS</span>
           <div className="flex gap-2 flex-wrap">
             {blindSpots.slice(0, 5).map((bs) => (
               <span key={bs.zone_id} className="text-xs bg-yellow-900/30 text-yellow-400 px-2 py-0.5 rounded">
@@ -238,11 +261,11 @@ export default function Watch() {
               {zones.map((z) => (
                 <div
                   key={z.id}
-                  className={`bg-[var(--color-surface)] border rounded-lg p-4 flex items-center justify-between ${THREAT_COLORS[z.threat_level]?.split(' ').pop() || 'border-[var(--color-border)]'}`}
+                  className={`bg-[var(--color-surface)] border rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${THREAT_COLORS[z.threat_level]?.split(' ').pop() || 'border-[var(--color-border)]'}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {/* Tier bars */}
-                    <div className="flex gap-0.5 items-end h-5">
+                    <div className="flex gap-0.5 items-end h-5 shrink-0">
                       {[0, 1, 2, 3, 4].map((t) => (
                         <div
                           key={t}
@@ -251,12 +274,12 @@ export default function Watch() {
                         />
                       ))}
                     </div>
-                    <div>
-                      <div className="font-medium text-sm">{z.name}</div>
-                      <div className="text-xs text-[var(--color-text-dim)]">{z.zone_id}</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{z.name}</div>
+                      <div className="text-xs text-[var(--color-text-dim)] truncate">{z.zone_id}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     {z.scan_stale && (
                       <span className="text-[10px] text-yellow-400 bg-yellow-900/30 px-1.5 py-0.5 rounded">STALE</span>
                     )}
@@ -273,9 +296,9 @@ export default function Watch() {
           )}
 
           {/* Add Zone Form */}
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3 sm:p-4">
             <div className="text-xs text-[var(--color-text-dim)] mb-2">Add Zone</div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 placeholder="Zone ID (e.g. zone-alpha-7)"
@@ -293,7 +316,7 @@ export default function Watch() {
               />
               <button
                 onClick={createZone}
-                className="px-4 py-2 rounded bg-[var(--color-primary)] text-black text-sm font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer"
+                className="px-4 py-2 rounded bg-[var(--color-primary)] text-black text-sm font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer sm:w-auto w-full"
               >
                 Add
               </button>
@@ -329,13 +352,42 @@ export default function Watch() {
                   <option value="HOSTILE">HOSTILE</option>
                   <option value="UNKNOWN">UNKNOWN</option>
                 </select>
+                <select
+                  value={scanSigType}
+                  onChange={(e) => setScanSigType(e.target.value)}
+                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] text-xs cursor-pointer"
+                >
+                  <option value="">Sig type...</option>
+                  <option value="EM">EM</option>
+                  <option value="HEAT">HEAT</option>
+                  <option value="GRAVIMETRIC">GRAV</option>
+                  <option value="RADAR">RADAR</option>
+                  <option value="UNKNOWN">???</option>
+                </select>
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] text-[var(--color-text-dim)] mb-0.5">
+                    <span>Resolution</span>
+                    <span>{scanResolution}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={scanResolution}
+                    onChange={(e) => setScanResolution(parseInt(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none bg-gray-700 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--color-primary)]"
+                  />
+                </div>
                 <input
                   type="number"
                   min={0}
                   max={100}
                   value={scanConf}
                   onChange={(e) => setScanConf(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1.5 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] text-xs"
+                  className="w-14 px-2 py-1.5 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] text-xs"
                   title="Confidence %"
                 />
                 <button
@@ -359,18 +411,39 @@ export default function Watch() {
                 return (
                   <div
                     key={s.id}
-                    className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 flex items-center justify-between"
+                    className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 space-y-1"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${SCAN_COLORS[s.result_type] || ''}`}>
-                        {s.result_type}
-                      </span>
-                      <span className="text-xs">{zone?.name || s.zone_id.slice(0, 8)}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${SCAN_COLORS[s.result_type] || ''}`}>
+                          {s.result_type}
+                        </span>
+                        {s.signature_type && (
+                          <span className={`text-[10px] font-mono ${SIG_COLORS[s.signature_type] || 'text-gray-500'}`}>
+                            {s.signature_type}
+                          </span>
+                        )}
+                        <span className="text-xs">{zone?.name || s.zone_id.slice(0, 8)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-dim)]">
+                        <span>{s.confidence}%</span>
+                        <span>{timeAgo(s.scanned_at)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-dim)]">
-                      <span>{s.confidence}%</span>
-                      <span>{timeAgo(s.scanned_at)}</span>
-                    </div>
+                    {/* Resolution bar */}
+                    {s.resolution > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1 rounded-full bg-gray-800 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${RESOLUTION_COLORS[s.resolution_label] || 'bg-gray-600'}`}
+                            style={{ width: `${s.resolution}%` }}
+                          />
+                        </div>
+                        <span className="text-[9px] text-[var(--color-text-dim)] font-mono w-16 text-right">
+                          {s.resolution_label?.replace('_', ' ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })

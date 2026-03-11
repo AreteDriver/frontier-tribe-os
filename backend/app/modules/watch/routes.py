@@ -53,12 +53,40 @@ CYCLE_NAME = "Shroud of Fear"
 
 THREAT_LEVELS = {0: "DORMANT", 1: "ACTIVE", 2: "EVOLVED", 3: "CRITICAL", 4: "CRITICAL"}
 VALID_SCAN_RESULTS = {"CLEAR", "ANOMALY", "HOSTILE", "UNKNOWN"}
+VALID_SIGNATURE_TYPES = {"EM", "HEAT", "GRAVIMETRIC", "RADAR", "UNKNOWN"}
 SCAN_STALE_MINUTES = 15
 CLONE_RESERVE_THRESHOLD = 5
 
 
 def _threat_level(tier: int) -> str:
     return THREAT_LEVELS.get(tier, "CRITICAL" if tier >= 3 else "DORMANT")
+
+
+def _resolution_label(resolution: int) -> str:
+    """Graduated visibility label from resolution percentage."""
+    if resolution >= 75:
+        return "FULL_INTEL"
+    if resolution >= 50:
+        return "IDENTIFIED"
+    if resolution >= 25:
+        return "PARTIAL"
+    return "UNRESOLVED"
+
+
+def _scan_to_response(scan: Scan) -> ScanResponse:
+    """Convert a Scan model to ScanResponse with computed fields."""
+    return ScanResponse(
+        id=scan.id,
+        zone_id=scan.zone_id,
+        scanner_id=scan.scanner_id,
+        result_type=scan.result_type,
+        signature_type=scan.signature_type,
+        resolution=scan.resolution,
+        resolution_label=_resolution_label(scan.resolution),
+        confidence=scan.confidence,
+        environment=scan.environment,
+        scanned_at=scan.scanned_at,
+    )
 
 
 def _is_scan_stale(last_scanned: datetime | None) -> bool:
@@ -198,6 +226,12 @@ async def submit_scan(
             detail=f"Invalid result_type. Must be one of: {VALID_SCAN_RESULTS}",
         )
 
+    if body.signature_type and body.signature_type not in VALID_SIGNATURE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid signature_type. Must be one of: {VALID_SIGNATURE_TYPES}",
+        )
+
     # Verify zone exists
     zone = await db.get(OrbitalZone, body.zone_id)
     if not zone:
@@ -207,8 +241,11 @@ async def submit_scan(
         zone_id=body.zone_id,
         scanner_id=member.id,
         result_type=body.result_type,
+        signature_type=body.signature_type,
+        resolution=body.resolution,
         result_data=body.result_data,
         confidence=body.confidence,
+        environment=body.environment,
     )
     db.add(scan)
 
@@ -223,7 +260,7 @@ async def submit_scan(
         scanner_name = member.character_name or "Unknown"
         await notifier.hostile_scan(zone=zone.name, scanner=scanner_name)
 
-    return scan
+    return _scan_to_response(scan)
 
 
 @router.get("/scans/feed", response_model=list[ScanResponse])
@@ -243,7 +280,7 @@ async def scan_feed(
     query = query.order_by(Scan.scanned_at.desc()).limit(limit)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    return [_scan_to_response(s) for s in result.scalars().all()]
 
 
 # --- Clones ---

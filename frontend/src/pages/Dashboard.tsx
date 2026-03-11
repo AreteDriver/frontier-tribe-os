@@ -185,9 +185,9 @@ export default function Dashboard() {
       {tribe ? (
         <div className="space-y-4">
           {/* Tribe Info Card */}
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <h3 className="text-xl font-semibold text-[var(--color-primary)]">{tribe.name}</h3>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6 space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-lg sm:text-xl font-semibold text-[var(--color-primary)]">{tribe.name}</h3>
               {tribe.name_short && (
                 <span className="text-sm px-2 py-0.5 rounded bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
                   [{tribe.name_short}]
@@ -199,15 +199,15 @@ export default function Dashboard() {
                 <span className="text-[var(--color-text-dim)]">Members</span>
                 <p className="text-lg font-semibold">{tribe.member_count}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[var(--color-text-dim)]">Invite Code</span>
                 <p className="flex items-center gap-2">
-                  <code className="bg-[var(--color-bg)] px-2 py-1 rounded text-[var(--color-primary)] text-sm">
+                  <code className="bg-[var(--color-bg)] px-2 py-1 rounded text-[var(--color-primary)] text-sm truncate">
                     {tribe.invite_code}
                   </code>
                   <button
                     onClick={copyInviteCode}
-                    className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text)] cursor-pointer"
+                    className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text)] cursor-pointer shrink-0"
                     title="Copy to clipboard"
                   >
                     copy
@@ -264,11 +264,11 @@ export default function Dashboard() {
                   View in Forge &rarr;
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {gapAnalysis.material_gaps.slice(0, 6).map((gap) => (
-                  <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-1.5 text-xs">
-                    <span>{gap.item_name}</span>
-                    <span className="text-red-400 font-medium">-{gap.deficit}</span>
+                  <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-1.5 text-xs min-w-0">
+                    <span className="truncate mr-2">{gap.item_name}</span>
+                    <span className="text-red-400 font-medium shrink-0">-{gap.deficit}</span>
                   </div>
                 ))}
               </div>
@@ -330,7 +330,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-3">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6 space-y-3">
             <h3 className="text-lg font-semibold">Create a Tribe</h3>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
@@ -359,7 +359,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 space-y-3">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6 space-y-3">
             <h3 className="text-lg font-semibold">Join a Tribe</h3>
             <div className="flex flex-col sm:flex-row gap-3">
               <input

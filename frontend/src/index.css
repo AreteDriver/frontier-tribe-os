@@ -22,6 +22,7 @@ body {
 
 ::-webkit-scrollbar {
   width: 8px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-bg);
@@ -29,4 +30,20 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 4px;
+}
+
+/* Hide horizontal scrollbar on nav while keeping scroll functional */
+nav::-webkit-scrollbar {
+  display: none;
+}
+nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Prevent text overflow on small screens */
+@media (max-width: 640px) {
+  h1, h2, h3 {
+    word-break: break-word;
+  }
 }

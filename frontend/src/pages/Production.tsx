@@ -16,6 +16,9 @@ interface Blueprint {
   type_id: string;
   name: string;
   category: string;
+  build_time_display: string | null;
+  bonus: string | null;
+  facility: string | null;
   materials: { item_id: string; name: string; quantity: number }[];
 }
 
@@ -140,8 +143,8 @@ export default function Production() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Forge — Production Board</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold">Forge — Production Board</h2>
         <span className="text-sm text-[var(--color-text-dim)]">{jobs.length} job{jobs.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -154,19 +157,19 @@ export default function Production() {
       {/* Gap Analysis Panel */}
       {gapAnalysis && gapAnalysis.material_gaps.length > 0 && (
         <div className="bg-[var(--color-surface)] border border-amber-800/30 rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <h3 className="text-sm font-semibold text-amber-400">Material Gaps</h3>
             <div className="flex gap-3 text-xs text-[var(--color-text-dim)]">
-              <span>{gapAnalysis.total_jobs} active jobs</span>
+              <span>{gapAnalysis.total_jobs} active</span>
               <span>{gapAnalysis.jobs_materials_ready} ready</span>
               <span className="text-red-400">{gapAnalysis.jobs_blocked} blocked</span>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {gapAnalysis.material_gaps.map((gap) => (
-              <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-2">
-                <span className="text-sm">{gap.item_name}</span>
-                <div className="flex items-center gap-2 text-xs">
+              <div key={gap.item_id} className="flex items-center justify-between bg-[var(--color-bg)] rounded px-3 py-2 min-w-0">
+                <span className="text-sm truncate mr-2">{gap.item_name}</span>
+                <div className="flex items-center gap-2 text-xs shrink-0">
                   <span className="text-[var(--color-text-dim)]">{gap.held}/{gap.required}</span>
                   <span className="text-red-400 font-medium">-{gap.deficit}</span>
                 </div>
@@ -216,22 +219,65 @@ export default function Production() {
               />
             </div>
           )}
-          <div className="w-24">
-            <label className="block text-xs text-[var(--color-text-dim)] mb-1">Qty</label>
-            <input
-              type="number"
-              min={1}
-              value={newJobQty}
-              onChange={(e) => setNewJobQty(parseInt(e.target.value) || 1)}
-              className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
+          <div className="flex gap-3 sm:gap-3 items-end">
+            <div className="w-20 sm:w-24">
+              <label className="block text-xs text-[var(--color-text-dim)] mb-1">Qty</label>
+              <input
+                type="number"
+                min={1}
+                value={newJobQty}
+                onChange={(e) => setNewJobQty(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            </div>
+            <button
+              onClick={createJob}
+              className="px-4 py-2 rounded bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Add Job
+            </button>
           </div>
-          <button
-            onClick={createJob}
-            className="px-4 py-2 rounded bg-[var(--color-primary)] text-black font-medium hover:bg-[var(--color-primary-dim)] transition-colors cursor-pointer"
-          >
-            Add Job
-          </button>
+
+          {/* Blueprint detail card */}
+          {selectedBp && (() => {
+            const bp = blueprints.find((b) => b.type_id === selectedBp);
+            if (!bp) return null;
+            return (
+              <div className="mt-3 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs text-[var(--color-text-dim)] mb-1">Bill of Materials</div>
+                  <div className="space-y-1">
+                    {bp.materials.map((m) => (
+                      <div key={m.item_id} className="flex justify-between text-xs">
+                        <span>{m.name}</span>
+                        <span className="text-[var(--color-primary)] font-mono">{m.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  {bp.build_time_display && (
+                    <div className="flex justify-between">
+                      <span className="text-[var(--color-text-dim)]">Build Time</span>
+                      <span className="font-mono">{bp.build_time_display}</span>
+                    </div>
+                  )}
+                  {bp.facility && (
+                    <div className="flex justify-between">
+                      <span className="text-[var(--color-text-dim)]">Facility</span>
+                      <span className="capitalize">{bp.facility}</span>
+                    </div>
+                  )}
+                  {bp.bonus && (
+                    <div className="flex justify-between">
+                      <span className="text-[var(--color-text-dim)]">Bonus</span>
+                      <span className="text-green-400">{bp.bonus}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

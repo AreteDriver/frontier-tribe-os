@@ -40,7 +40,19 @@ async def lifespan(app: FastAPI):
     # Create tables on startup (dev only — use Alembic in prod)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Start background World API poller if enabled
+    poller = None
+    if settings.enable_poller:
+        from app.modules.watch.poller import WorldAPIPoller
+
+        poller = WorldAPIPoller()
+        await poller.start()
+
     yield
+
+    if poller:
+        await poller.stop()
     await engine.dispose()
 
 

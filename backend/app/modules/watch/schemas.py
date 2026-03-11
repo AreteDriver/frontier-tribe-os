@@ -56,8 +56,11 @@ class FeralAIEventResponse(BaseModel):
 class ScanCreate(BaseModel):
     zone_id: UUID
     result_type: str  # CLEAR, ANOMALY, HOSTILE, UNKNOWN
+    signature_type: str | None = None  # EM, HEAT, GRAVIMETRIC, RADAR, UNKNOWN
+    resolution: int = 0  # 0-100 graduated visibility
     result_data: str | None = None
     confidence: int = 100
+    environment: str | None = None  # Environmental conditions
 
 
 class ScanResponse(BaseModel):
@@ -65,7 +68,11 @@ class ScanResponse(BaseModel):
     zone_id: UUID
     scanner_id: UUID | None
     result_type: str
+    signature_type: str | None
+    resolution: int
+    resolution_label: str  # Derived: UNRESOLVED / PARTIAL / IDENTIFIED / FULL_INTEL
     confidence: int
+    environment: str | None
     scanned_at: datetime
 
     model_config = {"from_attributes": True}

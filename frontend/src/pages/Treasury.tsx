@@ -108,8 +108,8 @@ export default function Treasury() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Ledger — Token Treasury</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold">Ledger — Token Treasury</h2>
         <ConnectButton />
       </div>
 
@@ -150,7 +150,7 @@ export default function Treasury() {
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Treasury Balance */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-3">Tribe Treasury</h3>
           {summary?.treasury_address ? (
             <>
@@ -176,7 +176,7 @@ export default function Treasury() {
         </div>
 
         {/* My Balance */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-3">My Wallet</h3>
           {myBalances ? (
             <>
@@ -204,16 +204,16 @@ export default function Treasury() {
 
       {/* Member Balances */}
       {summary && summary.members_with_balances.length > 0 && (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-4">Member Wallets</h3>
           <div className="space-y-2">
             {summary.members_with_balances.map((m) => (
-              <div key={m.member_id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
-                <div>
+              <div key={m.member_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-2 border-b border-[var(--color-border)] last:border-0">
+                <div className="min-w-0">
                   <span className="font-medium text-sm">{m.character_name || 'Unknown'}</span>
                   <span className="text-xs text-[var(--color-text-dim)] ml-2">{m.role}</span>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 shrink-0">
                   {m.balances.map((b, i) => (
                     <span key={i} className="text-sm text-[var(--color-primary)]">
                       {formatBalance(b)} {coinLabel(b.coin_type)}
@@ -230,13 +230,13 @@ export default function Treasury() {
       )}
 
       {/* Transaction History */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
         <h3 className="text-sm font-semibold text-[var(--color-text-dim)] mb-4">Transaction History</h3>
         {transactions.length === 0 ? (
           <p className="text-sm text-[var(--color-text-dim)]">No transactions recorded yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="text-left text-[var(--color-text-dim)] border-b border-[var(--color-border)]">
                   <th className="pb-2">Date</th>
