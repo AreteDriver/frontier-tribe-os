@@ -13,6 +13,7 @@ const navItems = [
   { to: '/roster', label: 'Census' },
   { to: '/production', label: 'Forge' },
   { to: '/treasury', label: 'Ledger' },
+  { to: '/watch', label: 'Watch' },
 ];
 
 export default function Layout() {

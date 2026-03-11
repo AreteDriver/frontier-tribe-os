@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Roster from './pages/Roster';
 import Production from './pages/Production';
 import Treasury from './pages/Treasury';
+import Watch from './pages/Watch';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ function App() {
           <Route path="/roster" element={<Roster />} />
           <Route path="/production" element={<Production />} />
           <Route path="/treasury" element={<Treasury />} />
+          <Route path="/watch" element={<Watch />} />
         </Route>
       </Routes>
     </BrowserRouter>

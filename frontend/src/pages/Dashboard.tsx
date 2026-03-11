@@ -293,7 +293,7 @@ export default function Dashboard() {
           )}
 
           {/* Module Nav Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               onClick={() => navigate('/roster')}
               className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
@@ -317,6 +317,14 @@ export default function Dashboard() {
               <div className="text-2xl mb-1">&#128176;</div>
               <div className="text-sm font-medium">Ledger</div>
               <div className="text-xs text-[var(--color-text-dim)]">Treasury & tokens</div>
+            </button>
+            <button
+              onClick={() => navigate('/watch')}
+              className="p-4 rounded-lg bg-[var(--color-surface)] border border-purple-800/30 hover:border-purple-500 transition-colors cursor-pointer text-center"
+            >
+              <div className="text-2xl mb-1">&#128065;</div>
+              <div className="text-sm font-medium text-purple-400">Watch</div>
+              <div className="text-xs text-[var(--color-text-dim)]">C5 intel & scans</div>
             </button>
           </div>
         </div>
