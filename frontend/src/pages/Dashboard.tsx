@@ -39,6 +39,22 @@ interface BlindSpotData {
   blind_spots: { zone_id: string; name: string; unseen_minutes: number }[];
 }
 
+interface OrbitalZone {
+  id: string;
+  zone_id: string;
+  name: string;
+  feral_ai_tier: number;
+  threat_level: string;
+  last_scanned: string | null;
+  scan_stale: boolean;
+}
+
+interface ScanResult {
+  id: string;
+  result_type: string;
+  scanned_at: string;
+}
+
 function formatSui(mist: string): string {
   const n = BigInt(mist);
   const whole = n / BigInt(1_000_000_000);
@@ -56,6 +72,8 @@ export default function Dashboard() {
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null);
   const [treasury, setTreasury] = useState<TreasurySummary | null>(null);
   const [blindSpots, setBlindSpots] = useState<BlindSpotData | null>(null);
+  const [zones, setZones] = useState<OrbitalZone[]>([]);
+  const [recentScans, setRecentScans] = useState<ScanResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -79,14 +97,18 @@ export default function Dashboard() {
       setTribe(data);
 
       // Load summary data in parallel
-      const [gapRes, treasuryRes, blindRes] = await Promise.all([
+      const [gapRes, treasuryRes, blindRes, zonesRes, scansRes] = await Promise.all([
         api.get(`/forge/tribes/${tribeId}/gap-analysis`).catch(() => null),
         api.get(`/ledger/tribes/${tribeId}/summary`).catch(() => null),
         api.get('/watch/alerts/blind-spots').catch(() => null),
+        api.get('/watch/orbital-zones').catch(() => null),
+        api.get('/watch/scans/feed?limit=5').catch(() => null),
       ]);
       if (gapRes) setGapAnalysis(gapRes.data);
       if (treasuryRes) setTreasury(treasuryRes.data);
       if (blindRes) setBlindSpots(blindRes.data);
+      if (zonesRes) setZones(zonesRes.data);
+      if (scansRes) setRecentScans(scansRes.data);
     } catch {
       localStorage.removeItem('tribeId');
     } finally {
@@ -287,35 +309,88 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Blind Spots Alert */}
-          {blindSpots && blindSpots.count > 0 ? (
-            <div className="bg-[var(--color-surface)] border border-yellow-800/30 rounded-lg p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-yellow-400">
-                Blind Spots ({blindSpots.count})
-              </h3>
-              <div className="space-y-1">
-                {blindSpots.blind_spots.slice(0, 5).map((bs) => (
-                  <div key={bs.zone_id} className="flex items-center justify-between text-xs">
-                    <span>{bs.name}</span>
-                    <span className="text-yellow-400">{bs.unseen_minutes}m unseen</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : blindSpots && blindSpots.count === 0 && (
-            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
-              <p className="text-sm text-[var(--color-text-dim)]">All clear — no blind spots detected.</p>
+          {/* C5 Intel Summary */}
+          <div className="bg-[var(--color-surface)] border border-purple-800/30 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-purple-400">C5 Intel</h3>
               <button
                 onClick={() => navigate('/watch')}
-                className="mt-2 text-xs text-[var(--color-primary)] hover:underline cursor-pointer"
+                className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-primary)] cursor-pointer"
               >
-                Open Watch to track zones
+                Manage Zones &rarr;
               </button>
             </div>
-          )}
+
+            {zones.length > 0 ? (
+              <>
+                {/* Zone stats row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-[var(--color-primary)]">{zones.length}</div>
+                    <div className="text-[10px] text-[var(--color-text-dim)]">Zones</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-red-400">
+                      {zones.filter((z) => z.threat_level === 'CRITICAL' || z.threat_level === 'EVOLVED').length}
+                    </div>
+                    <div className="text-[10px] text-[var(--color-text-dim)]">Elevated</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-yellow-400">
+                      {blindSpots?.count ?? 0}
+                    </div>
+                    <div className="text-[10px] text-[var(--color-text-dim)]">Blind Spots</div>
+                  </div>
+                </div>
+
+                {/* Blind spots detail */}
+                {blindSpots && blindSpots.count > 0 && (
+                  <div className="bg-yellow-900/10 border border-yellow-800/30 rounded p-2 space-y-1">
+                    {blindSpots.blind_spots.slice(0, 3).map((bs) => (
+                      <div key={bs.zone_id} className="flex items-center justify-between text-xs">
+                        <span>{bs.name}</span>
+                        <span className="text-yellow-400">{bs.unseen_minutes}m unseen</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent scans */}
+                {recentScans.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-[var(--color-text-dim)] uppercase">Recent Scans</div>
+                    {recentScans.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs">
+                        <span className={
+                          s.result_type === 'HOSTILE' ? 'text-red-400' :
+                          s.result_type === 'ANOMALY' ? 'text-amber-400' :
+                          s.result_type === 'CLEAR' ? 'text-green-400' : 'text-[var(--color-text-dim)]'
+                        }>
+                          {s.result_type}
+                        </span>
+                        <span className="text-[var(--color-text-dim)]">
+                          {new Date(s.scanned_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-[var(--color-text-dim)]">No zones tracked yet.</p>
+                <button
+                  onClick={() => navigate('/watch')}
+                  className="mt-1 text-xs text-purple-400 hover:underline cursor-pointer"
+                >
+                  Add your first zone
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Module Nav Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate('/roster')}
               className="p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors cursor-pointer text-center"
@@ -339,14 +414,6 @@ export default function Dashboard() {
               <div className="text-2xl mb-1">&#128176;</div>
               <div className="text-sm font-medium">Ledger</div>
               <div className="text-xs text-[var(--color-text-dim)]">Treasury & tokens</div>
-            </button>
-            <button
-              onClick={() => navigate('/watch')}
-              className="p-4 rounded-lg bg-[var(--color-surface)] border border-purple-800/30 hover:border-purple-500 transition-colors cursor-pointer text-center"
-            >
-              <div className="text-2xl mb-1">&#128065;</div>
-              <div className="text-sm font-medium text-purple-400">Watch</div>
-              <div className="text-xs text-[var(--color-text-dim)]">C5 intel & scans</div>
             </button>
           </div>
         </div>

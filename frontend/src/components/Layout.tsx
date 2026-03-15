@@ -35,7 +35,6 @@ const navItems = [
   { to: '/roster', label: 'Census' },
   { to: '/production', label: 'Forge' },
   { to: '/treasury', label: 'Ledger' },
-  { to: '/watch', label: 'Watch' },
   { to: '/intel', label: 'Intel' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/systems', label: 'Systems' },
