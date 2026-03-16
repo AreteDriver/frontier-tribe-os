@@ -90,7 +90,10 @@ export default function Landing() {
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4 items-center">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+              window.location.href = `${apiUrl}/auth/login`;
+            }}
             className="px-8 py-3 rounded-lg font-semibold text-black text-lg transition-colors cursor-pointer"
             style={{ backgroundColor: '#f59e0b' }}
             onMouseEnter={(e) =>
