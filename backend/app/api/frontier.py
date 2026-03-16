@@ -23,7 +23,7 @@ async def get_character(character_id: str) -> dict | None:
             resp = await client.get(f"{BASE_URL}/v2/smartcharacters/{character_id}")
             resp.raise_for_status()
             return resp.json()
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("World API character fetch failed: %s", e)
         return None
 
@@ -36,7 +36,7 @@ async def get_item_types() -> list[dict]:
             resp.raise_for_status()
             data = resp.json()
             return data.get("data", data) if isinstance(data, dict) else data
-    except Exception:
+    except httpx.HTTPError:
         logger.warning("World API types fetch failed, using static fallback")
         return _load_static("blueprints.json")
 
@@ -48,7 +48,7 @@ async def get_blueprint_materials(type_id: str) -> dict | None:
             resp = await client.get(f"{BASE_URL}/v2/types/{type_id}")
             resp.raise_for_status()
             return resp.json()
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("World API blueprint materials fetch failed: %s", e)
         return _load_static_blueprint(type_id)
 
@@ -62,7 +62,7 @@ async def get_tribes() -> list[dict]:
             data = resp.json()
             # World API wraps in {data: [...]} or returns plain list
             return data.get("data", data) if isinstance(data, dict) else data
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("World API tribes fetch failed: %s", e)
         return []
 
@@ -74,7 +74,7 @@ async def get_tribe(tribe_id: str) -> dict | None:
             resp = await client.get(f"{BASE_URL}/v2/tribes/{tribe_id}")
             resp.raise_for_status()
             return resp.json()
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("World API tribe fetch failed: %s", e)
         return None
 
@@ -90,7 +90,7 @@ async def get_smart_assemblies(assembly_type: str | None = None) -> list[dict]:
             resp.raise_for_status()
             data = resp.json()
             return data.get("data", data) if isinstance(data, dict) else data
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("World API assemblies fetch failed: %s", e)
         return []
 

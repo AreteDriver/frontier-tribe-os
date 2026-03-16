@@ -145,6 +145,6 @@ async def test_alert(
             if resp.status_code in (200, 204):
                 return {"sent": True, "status_code": resp.status_code}
             return {"sent": False, "status_code": resp.status_code}
-    except Exception:
+    except httpx.HTTPError:
         logger.exception("Failed to send test alert for %s", alert_id)
         return {"sent": False, "error": "Failed to reach Discord webhook"}

@@ -63,6 +63,12 @@ Three integrated modules for tribe leaders and officers:
                                   └──────────────────┘
 ```
 
+## Requirements
+
+- Python 3.12+
+- Node.js 20+
+- Docker & Docker Compose (for full stack)
+
 ## Quick Start
 
 ```bash
@@ -113,7 +119,7 @@ Full API docs at `/docs` (Swagger UI) when running.
 
 ## Testing
 
-63 tests covering all 3 modules:
+193 tests covering all 7 modules:
 
 ```bash
 cd backend

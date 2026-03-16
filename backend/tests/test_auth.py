@@ -79,10 +79,8 @@ async def test_login_returns_authorize_url_with_credentials(client):
         mock_sso_settings.eve_frontier_callback_url = (
             "http://localhost:5173/auth/callback"
         )
-        resp = await client.get("/auth/login")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "authorize_url" in data
-        assert "state" in data
-        assert "auth.evefrontier.com" in data["authorize_url"]
-        assert "test-client-id" in data["authorize_url"]
+        resp = await client.get("/auth/login", follow_redirects=False)
+        assert resp.status_code == 307
+        location = resp.headers["location"]
+        assert "auth.evefrontier.com" in location
+        assert "test-client-id" in location

@@ -278,7 +278,7 @@ class WardenEngine:
                         hypothesis_generator=hypothesis_generator,
                         evaluator=evaluator,
                     )
-                except Exception:
+                except Exception:  # noqa: BLE001 — warden cycle must not crash
                     logger.exception(
                         "Warden %s: cycle %d failed",
                         self.tribe_id,

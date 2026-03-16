@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+
 from app.api.frontier import get_character, get_item_types, get_tribes
 
 
@@ -31,14 +33,18 @@ async def test_get_character_success(mock_client_cls):
 
 @patch("app.api.frontier.httpx.AsyncClient")
 async def test_get_character_failure_returns_none(mock_client_cls):
-    mock_client_cls.return_value = _mock_httpx_client(side_effect=Exception("timeout"))
+    mock_client_cls.return_value = _mock_httpx_client(
+        side_effect=httpx.ConnectError("timeout")
+    )
     result = await get_character("0xfail")
     assert result is None
 
 
 @patch("app.api.frontier.httpx.AsyncClient")
 async def test_get_item_types_falls_back_to_static(mock_client_cls):
-    mock_client_cls.return_value = _mock_httpx_client(side_effect=Exception("API down"))
+    mock_client_cls.return_value = _mock_httpx_client(
+        side_effect=httpx.ConnectError("API down")
+    )
     result = await get_item_types()
     assert isinstance(result, list)
 
@@ -53,6 +59,8 @@ async def test_get_tribes_success(mock_client_cls):
 
 @patch("app.api.frontier.httpx.AsyncClient")
 async def test_get_tribes_failure_returns_empty(mock_client_cls):
-    mock_client_cls.return_value = _mock_httpx_client(side_effect=Exception("down"))
+    mock_client_cls.return_value = _mock_httpx_client(
+        side_effect=httpx.ConnectError("down")
+    )
     result = await get_tribes()
     assert result == []

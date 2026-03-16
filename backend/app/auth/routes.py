@@ -1,6 +1,9 @@
 """Auth routes — FusionAuth SSO callback + dev login."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import logging
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,12 +18,16 @@ from app.auth.sso import (
 from app.config import settings
 from app.db.models import Member
 from app.db.session import get_db
+from app.rate_limit import limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/login")
-async def login():
+@limiter.limit("10/minute")
+async def login(request: Request):
     """Redirect user to EVE Frontier FusionAuth OAuth2."""
     if not settings.eve_frontier_client_id:
         raise HTTPException(
@@ -32,7 +39,9 @@ async def login():
 
 
 @router.get("/callback")
+@limiter.limit("10/minute")
 async def callback(
+    request: Request,
     code: str = Query(...),
     state: str = Query(""),
     db: AsyncSession = Depends(get_db),
@@ -46,7 +55,14 @@ async def callback(
     try:
         token_data = await exchange_code(code)
         user_info = await get_userinfo(token_data["access_token"])
-    except Exception:
+    except httpx.HTTPStatusError as e:
+        logger.warning("SSO token exchange failed: %s", e.response.status_code)
+        raise HTTPException(status_code=400, detail="SSO verification failed")
+    except httpx.HTTPError as e:
+        logger.warning("SSO network error: %s", e)
+        raise HTTPException(status_code=502, detail="SSO provider unreachable")
+    except (KeyError, ValueError) as e:
+        logger.warning("SSO response parsing failed: %s", e)
         raise HTTPException(status_code=400, detail="SSO verification failed")
 
     # FusionAuth userinfo returns sub (user ID), email, preferred_username, etc.
@@ -73,7 +89,9 @@ async def callback(
 
 
 @router.post("/dev-login")
+@limiter.limit("5/minute")
 async def dev_login(
+    request: Request,
     name: str = Query("DevPilot"),
     db: AsyncSession = Depends(get_db),
 ):

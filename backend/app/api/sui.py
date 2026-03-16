@@ -25,7 +25,7 @@ async def _rpc_call(method: str, params: list) -> dict | None:
                 logger.warning("Sui RPC error for %s: %s", method, data["error"])
                 return None
             return data.get("result")
-    except Exception as e:
+    except httpx.HTTPError as e:
         logger.warning("Sui RPC call %s failed: %s", method, e)
         return None
 

@@ -7,7 +7,7 @@ primary_region = "ord"
 [env]
   ENVIRONMENT = "production"
   DATABASE_URL = "sqlite+aiosqlite:///data/tribe.db"
-  EVE_FRONTIER_CALLBACK_URL = "https://frontend-ten-theta-80.vercel.app/auth/callback"
+  # EVE_FRONTIER_CALLBACK_URL set via `fly secrets set` — not hardcoded
 
 [http_service]
   internal_port = 8000

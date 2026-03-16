@@ -283,9 +283,9 @@ async def test_scan_resolution_labels(client, auth_headers):
             headers=auth_headers,
         )
         assert resp.status_code == 201
-        assert (
-            resp.json()["resolution_label"] == expected_label
-        ), f"resolution={resolution} expected {expected_label}"
+        assert resp.json()["resolution_label"] == expected_label, (
+            f"resolution={resolution} expected {expected_label}"
+        )
 
 
 @pytest.mark.asyncio

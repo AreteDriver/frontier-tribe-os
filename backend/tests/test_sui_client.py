@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+
 from app.api.sui import get_all_balances, get_coin_balance, get_transactions_for_address
 
 
@@ -52,7 +54,7 @@ async def test_get_all_balances_rpc_error(mock_client_cls):
 @patch("app.api.sui.httpx.AsyncClient")
 async def test_get_all_balances_network_error(mock_client_cls):
     mock_client = AsyncMock()
-    mock_client.post.side_effect = Exception("connection refused")
+    mock_client.post.side_effect = httpx.ConnectError("connection refused")
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
     mock_client_cls.return_value = mock_client

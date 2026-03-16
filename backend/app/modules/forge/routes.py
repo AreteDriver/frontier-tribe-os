@@ -38,7 +38,7 @@ def _load_blueprints() -> list[dict]:
     if _blueprints_cache is None:
         try:
             _blueprints_cache = json.loads(BLUEPRINTS_PATH.read_text())
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             logger.warning(
                 "Failed to load blueprints.json from %s, using empty list",
                 BLUEPRINTS_PATH,

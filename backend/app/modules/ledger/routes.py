@@ -3,6 +3,7 @@
 import logging
 from uuid import UUID
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -195,7 +196,7 @@ async def get_treasury_summary(
                 )
                 for b in raw
             ]
-        except Exception:
+        except (httpx.HTTPError, KeyError, TypeError):
             logger.warning("Failed to fetch treasury balances for tribe %s", tribe_id)
 
     # Member count
@@ -234,7 +235,7 @@ async def get_treasury_summary(
                     balances=balances,
                 )
             )
-        except Exception:
+        except (httpx.HTTPError, KeyError, TypeError):
             logger.warning("Failed to fetch balances for member %s", m.id)
 
     return TreasurySummary(

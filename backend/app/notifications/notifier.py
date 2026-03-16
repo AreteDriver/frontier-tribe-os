@@ -106,7 +106,7 @@ class DiscordNotifier:
                     resp.text[:200],
                 )
                 return False
-        except Exception:
+        except httpx.HTTPError:
             logger.exception("Failed to send Discord alert: %s", alert_type)
             return False
 

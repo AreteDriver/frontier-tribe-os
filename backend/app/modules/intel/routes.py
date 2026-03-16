@@ -791,7 +791,7 @@ async def get_battle(
                     if block.get("type") == "text":
                         narrative = block.get("text", "").strip()
                         break
-        except Exception:
+        except (httpx.HTTPError, KeyError, ValueError):
             logger.exception("Failed to generate battle narrative")
             narrative = None
 

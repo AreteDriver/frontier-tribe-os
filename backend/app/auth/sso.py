@@ -81,7 +81,7 @@ async def get_smart_character(wallet_address: str) -> dict | None:
             )
             resp.raise_for_status()
             return resp.json()
-    except Exception:
+    except httpx.HTTPError:
         return None
 
 

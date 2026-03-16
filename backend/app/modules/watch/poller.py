@@ -64,7 +64,7 @@ class WorldAPIPoller:
         while self._running:
             try:
                 await self.poll_once()
-            except Exception:
+            except Exception:  # noqa: BLE001 — background loop must not crash
                 logger.exception("Unhandled error in poll cycle")
             try:
                 await asyncio.sleep(self.interval_seconds)
@@ -90,7 +90,7 @@ class WorldAPIPoller:
                 logger.info("sync_tribes: upserted %d/%d tribes", upserted, len(tribes))
         except httpx.HTTPError as e:
             logger.warning("sync_tribes failed: %s", e)
-        except Exception:
+        except Exception:  # noqa: BLE001 — background task resilience
             logger.exception("sync_tribes unexpected error")
 
     async def _upsert_tribe(self, db: AsyncSession, data: dict, world_id: int) -> int:
@@ -140,7 +140,7 @@ class WorldAPIPoller:
                 )
         except httpx.HTTPError as e:
             logger.warning("sync_killmails failed: %s", e)
-        except Exception:
+        except Exception:  # noqa: BLE001 — background task resilience
             logger.exception("sync_killmails unexpected error")
 
     async def _upsert_killmail(self, db: AsyncSession, data: dict, km_id: int) -> int:
@@ -188,5 +188,5 @@ class WorldAPIPoller:
             logger.info("sync_assemblies: %s", counts)
         except httpx.HTTPError as e:
             logger.warning("sync_assemblies failed: %s", e)
-        except Exception:
+        except Exception:  # noqa: BLE001 — background task resilience
             logger.exception("sync_assemblies unexpected error")

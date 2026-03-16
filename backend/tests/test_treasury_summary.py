@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 
 
@@ -75,7 +76,9 @@ async def test_treasury_summary_sui_failure(client, tribe_with_leader):
     tribe, headers = tribe_with_leader
 
     with patch("app.modules.ledger.routes.sui") as mock_sui:
-        mock_sui.get_all_balances = AsyncMock(side_effect=Exception("RPC timeout"))
+        mock_sui.get_all_balances = AsyncMock(
+            side_effect=httpx.ConnectError("RPC timeout")
+        )
 
         resp = await client.get(
             f"/ledger/tribes/{tribe['id']}/summary", headers=headers
