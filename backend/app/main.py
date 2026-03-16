@@ -28,6 +28,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https://images.evetech.net; "
             "connect-src 'self' https://esi.evetech.net https://fullnode.mainnet.sui.io; "
+            "frame-src https://ef-map.com; "
             "object-src 'none'; "
             "frame-ancestors 'none'"
         )

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -99,6 +99,114 @@ function TrendIndicator({ trend }: { trend: string }) {
   if (trend === 'UP') return <span className="text-green-400 font-bold">&#9650;</span>;
   if (trend === 'DOWN') return <span className="text-red-400 font-bold">&#9660;</span>;
   return <span className="text-gray-500 font-bold">&#9654;</span>;
+}
+
+const THREAT_PIN_COLORS: Record<string, string> = {
+  DORMANT: '#4ade80',
+  ACTIVE: '#fbbf24',
+  EVOLVED: '#f87171',
+  CRITICAL: '#c084fc',
+};
+
+function EFMapEmbed({
+  hotspots,
+  selectedZone,
+  onZoneSelect,
+}: {
+  hotspots: HotspotEntry[];
+  selectedZone: string | null;
+  onZoneSelect: (zoneId: string) => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== 'https://ef-map.com') return;
+
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'ef-map:ready') {
+        setMapReady(true);
+      }
+
+      if (data.type === 'ef-map:zone-click' && data.zoneId) {
+        onZoneSelect(data.zoneId);
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onZoneSelect]);
+
+  useEffect(() => {
+    if (!mapReady || !iframeRef.current?.contentWindow) return;
+
+    const pins = hotspots.map((h) => ({
+      zoneId: h.zone_id,
+      label: h.name,
+      color: THREAT_PIN_COLORS[h.threat_level] || '#9ca3af',
+      size: Math.min(Math.max(h.scan_count_24h / 5, 4), 20),
+      selected: h.zone_id === selectedZone,
+    }));
+
+    iframeRef.current.contentWindow.postMessage(
+      { type: 'ef-map:set-pins', pins },
+      'https://ef-map.com'
+    );
+  }, [hotspots, selectedZone, mapReady]);
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3 text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)] cursor-pointer flex items-center justify-between transition-colors"
+      >
+        <span>Spatial Map</span>
+        <span className="text-xs">Show</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden">
+      <div className="px-4 py-2 border-b border-[var(--color-border)] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium">Spatial Map</h3>
+          {!mapReady && (
+            <div className="w-3 h-3 border border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-[var(--color-text-dim)]">
+            {Object.entries(THREAT_PIN_COLORS).map(([level, color]) => (
+              <span key={level} className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                {level}
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={() => setCollapsed(true)}
+            className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text)] cursor-pointer"
+          >
+            Hide
+          </button>
+        </div>
+      </div>
+      <iframe
+        ref={iframeRef}
+        src="https://ef-map.com/embed"
+        title="EVE Frontier Map"
+        className="w-full border-0"
+        style={{ height: '360px' }}
+        sandbox="allow-scripts allow-same-origin"
+        loading="lazy"
+      />
+    </div>
+  );
 }
 
 type SortKey = 'name' | 'scan_count_24h' | 'threat_level' | 'trend' | 'last_scanned';
@@ -211,6 +319,13 @@ export default function Systems() {
           {error}
         </div>
       )}
+
+      {/* Spatial Map */}
+      <EFMapEmbed
+        hotspots={hotspots}
+        selectedZone={selectedZone}
+        onZoneSelect={(zoneId) => loadZoneActivity(zoneId)}
+      />
 
       {/* Hotspot Table */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden">
