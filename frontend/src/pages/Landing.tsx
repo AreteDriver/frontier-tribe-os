@@ -90,11 +90,9 @@ export default function Landing() {
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4 items-center">
           <button
-            onClick={() => {
-              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-              window.location.href = `${apiUrl}/auth/login`;
-            }}
-            className="px-8 py-3 rounded-lg font-semibold text-black text-lg transition-colors cursor-pointer"
+            onClick={handleDevLogin}
+            disabled={loading}
+            className="px-8 py-3 rounded-lg font-semibold text-black text-lg transition-colors cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: '#f59e0b' }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.backgroundColor = '#d97706')
@@ -103,23 +101,7 @@ export default function Landing() {
               (e.currentTarget.style.backgroundColor = '#f59e0b')
             }
           >
-            Enter Dashboard
-          </button>
-          <button
-            onClick={handleDevLogin}
-            disabled={loading}
-            className="px-6 py-2 rounded-lg text-sm border transition-colors cursor-pointer disabled:opacity-50"
-            style={{ borderColor: '#3f3f46', color: '#a1a1aa' }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#f59e0b';
-              e.currentTarget.style.color = '#f5f5f4';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#3f3f46';
-              e.currentTarget.style.color = '#a1a1aa';
-            }}
-          >
-            {loading ? 'Logging in...' : 'Dev Login'}
+            {loading ? 'Logging in...' : 'Enter Dashboard'}
           </button>
         </div>
         {error && (
