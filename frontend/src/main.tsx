@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SuiClientProvider, WalletProvider, createNetworkConfig } from '@mysten/dapp-kit'
 import { getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc'
 import '@mysten/dapp-kit/dist/index.css'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import App from './App'
 
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')!).render(
       <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
         <WalletProvider autoConnect>
           <App />
+          <Analytics />
         </WalletProvider>
       </SuiClientProvider>
     </QueryClientProvider>
