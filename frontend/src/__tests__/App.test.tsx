@@ -29,7 +29,7 @@ describe('App routing', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText('Frontier Tribe OS')).toBeInTheDocument();
+    expect(screen.getByText('FRONTIER TRIBE OS')).toBeInTheDocument();
   });
 
   it('redirects protected route to / without token', () => {

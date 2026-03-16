@@ -32,27 +32,38 @@ describe('Landing', () => {
     localStorage.clear();
   });
 
-  it('renders title "Frontier Tribe OS"', () => {
+  it('renders title', () => {
     renderLanding();
-    expect(screen.getByText('Frontier Tribe OS')).toBeInTheDocument();
+    expect(screen.getByText('FRONTIER TRIBE OS')).toBeInTheDocument();
   });
 
-  it('has dev login input and button', () => {
+  it('has Enter Dashboard button', () => {
     renderLanding();
-    expect(screen.getByPlaceholderText('Character name')).toBeInTheDocument();
-    expect(screen.getByText('Dev Login')).toBeInTheDocument();
+    expect(screen.getByText('Enter Dashboard')).toBeInTheDocument();
   });
 
-  it('has SSO button', () => {
+  it('shows feature modules', () => {
     renderLanding();
-    expect(screen.getByText('Login with EVE Frontier')).toBeInTheDocument();
+    expect(screen.getByText('Census')).toBeInTheDocument();
+    expect(screen.getByText('Forge')).toBeInTheDocument();
+    expect(screen.getByText('Ledger')).toBeInTheDocument();
   });
 
-  it('shows error when submitting empty name', async () => {
+  it('calls dev-login on Enter Dashboard click', async () => {
+    const api = await import('../api');
+    const mockPost = vi.fn().mockResolvedValue({
+      data: {
+        access_token: 'test-token',
+        character_name: 'Commander',
+        wallet_address: '0x123',
+      },
+    });
+    (api.default.post as ReturnType<typeof vi.fn>).mockImplementation(mockPost);
+
     const user = userEvent.setup();
     renderLanding();
 
-    await user.click(screen.getByText('Dev Login'));
-    expect(screen.getByText('Enter a character name')).toBeInTheDocument();
+    await user.click(screen.getByText('Enter Dashboard'));
+    expect(mockPost).toHaveBeenCalledWith('/auth/dev-login?name=Commander');
   });
 });
