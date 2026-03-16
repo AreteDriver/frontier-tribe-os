@@ -25,11 +25,29 @@ interface ScanResult {
   scanned_at: string;
 }
 
+interface CloneEntry {
+  id: string;
+  clone_id: string;
+  owner_id: string | null;
+  blueprint_id: string | null;
+  status: string;
+  manufactured_at: string | null;
+}
+
 interface CloneQueue {
   total_active: number;
   total_manufacturing: number;
   low_reserve: boolean;
   reserve_threshold: number;
+  clones: CloneEntry[];
+}
+
+interface CrownEntry {
+  id: string;
+  crown_id: string;
+  character_id: string | null;
+  crown_type: string;
+  equipped_at: string | null;
 }
 
 interface CrownRoster {
@@ -37,6 +55,7 @@ interface CrownRoster {
   members_with_crowns: number;
   members_without_crowns: number;
   crown_type_distribution: Record<string, number>;
+  crowns: CrownEntry[];
 }
 
 interface BlindSpot {
@@ -72,6 +91,20 @@ const RESOLUTION_COLORS: Record<string, string> = {
   PARTIAL: 'bg-amber-500',
   IDENTIFIED: 'bg-blue-500',
   FULL_INTEL: 'bg-green-500',
+};
+
+const CLONE_STATUS_COLORS: Record<string, string> = {
+  active: 'text-green-400 bg-green-900/30',
+  manufacturing: 'text-cyan-400 bg-cyan-900/30',
+  destroyed: 'text-red-400 bg-red-900/30',
+};
+
+const CROWN_TYPE_COLORS: Record<string, string> = {
+  WARRIOR: 'text-red-400',
+  BUILDER: 'text-amber-400',
+  EXPLORER: 'text-cyan-400',
+  SCHOLAR: 'text-indigo-400',
+  MERCHANT: 'text-emerald-400',
 };
 
 const TIER_BARS = [
@@ -205,7 +238,7 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Top row: Stats + Clone + Crown */}
+      {/* Top row: Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
           <div className="text-2xl font-bold text-[var(--color-primary)]">{zones.length}</div>
@@ -215,34 +248,139 @@ export default function Watch() {
           <div className="text-2xl font-bold text-[var(--color-primary)]">{scans.length}</div>
           <div className="text-xs text-[var(--color-text-dim)]">Recent Scans</div>
         </div>
-        {clones ? (
-          <div className={`bg-[var(--color-surface)] border rounded-lg p-4 text-center ${clones.low_reserve ? 'border-red-800/50' : 'border-[var(--color-border)]'}`}>
-            <div className={`text-2xl font-bold ${clones.low_reserve ? 'text-red-400' : 'text-[var(--color-primary)]'}`}>
-              {clones.total_active}
-            </div>
-            <div className="text-xs text-[var(--color-text-dim)]">Active Clones</div>
-            {clones.low_reserve && <div className="text-[10px] text-red-400 mt-1">LOW RESERVE</div>}
+        <div className={`bg-[var(--color-surface)] border rounded-lg p-4 text-center ${clones?.low_reserve ? 'border-red-800/50' : 'border-[var(--color-border)]'}`}>
+          <div className={`text-2xl font-bold ${clones?.low_reserve ? 'text-red-400' : 'text-[var(--color-primary)]'}`}>
+            {clones ? clones.total_active : '--'}
           </div>
-        ) : tribeId && (
-          <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
-            <div className="text-sm text-[var(--color-text-dim)]">--</div>
-            <div className="text-xs text-[var(--color-text-dim)]">Clones</div>
+          <div className="text-xs text-[var(--color-text-dim)]">Active Clones</div>
+          {clones?.low_reserve && <div className="text-[10px] text-red-400 mt-1">LOW RESERVE</div>}
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--color-primary)]">
+            {crowns ? `${crowns.members_with_crowns}/${crowns.total_members}` : '--'}
           </div>
-        )}
-        {crowns ? (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-[var(--color-primary)]">
-              {crowns.members_with_crowns}/{crowns.total_members}
-            </div>
-            <div className="text-xs text-[var(--color-text-dim)]">Crowned</div>
-          </div>
-        ) : tribeId && (
-          <div className="border border-dashed border-[var(--color-border)] rounded-lg p-4 text-center">
-            <div className="text-sm text-[var(--color-text-dim)]">--</div>
-            <div className="text-xs text-[var(--color-text-dim)]">Crowns</div>
-          </div>
-        )}
+          <div className="text-xs text-[var(--color-text-dim)]">Crowned</div>
+        </div>
       </div>
+
+      {/* Clone Manufacturing Panel */}
+      {clones && (clones.clones.length > 0 || clones.total_manufacturing > 0) && (
+        <div className={`bg-[var(--color-surface)] border rounded-lg overflow-hidden ${clones.low_reserve ? 'border-red-800/50' : 'border-[var(--color-border)]'}`}>
+          <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold">Clone Manufacturing</h3>
+              {clones.low_reserve && (
+                <span className="text-[10px] font-bold text-red-400 bg-red-900/30 px-2 py-0.5 rounded animate-pulse">
+                  LOW RESERVE &lt; {clones.reserve_threshold}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-4 text-xs text-[var(--color-text-dim)]">
+              <span><span className="text-green-400 font-medium">{clones.total_active}</span> active</span>
+              <span><span className="text-cyan-400 font-medium">{clones.total_manufacturing}</span> building</span>
+            </div>
+          </div>
+          {/* Reserve gauge */}
+          <div className="px-4 py-2 border-b border-[var(--color-border)]">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-[var(--color-text-dim)] w-14 shrink-0">Reserve</span>
+              <div className="flex-1 h-2 rounded-full bg-gray-800 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${clones.low_reserve ? 'bg-red-500' : clones.total_active <= clones.reserve_threshold * 2 ? 'bg-amber-500' : 'bg-green-500'}`}
+                  style={{ width: `${Math.min(100, (clones.total_active / Math.max(clones.reserve_threshold * 3, 1)) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-[var(--color-text-dim)] w-10 text-right">{clones.total_active}/{clones.reserve_threshold * 3}</span>
+            </div>
+          </div>
+          {/* Clone list */}
+          {clones.clones.length > 0 && (
+            <div className="divide-y divide-[var(--color-border)] max-h-48 overflow-y-auto">
+              {clones.clones.map((c) => (
+                <div key={c.id} className="px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${CLONE_STATUS_COLORS[c.status] || 'text-gray-400 bg-gray-900/30'}`}>
+                      {c.status.toUpperCase()}
+                    </span>
+                    <span className="text-xs font-mono text-[var(--color-text-dim)] truncate">
+                      {c.clone_id.slice(0, 12)}...
+                    </span>
+                    {c.blueprint_id && (
+                      <span className="text-[10px] text-[var(--color-text-dim)]">
+                        {c.blueprint_id}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-text-dim)] shrink-0">
+                    {c.manufactured_at ? timeAgo(c.manufactured_at) : 'pending'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Crown Roster Panel */}
+      {crowns && (crowns.crowns.length > 0 || Object.keys(crowns.crown_type_distribution).length > 0) && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Crown Roster</h3>
+            <div className="flex gap-4 text-xs text-[var(--color-text-dim)]">
+              <span><span className="text-[var(--color-primary)] font-medium">{crowns.members_with_crowns}</span> crowned</span>
+              <span><span className="text-gray-500 font-medium">{crowns.members_without_crowns}</span> uncrowned</span>
+            </div>
+          </div>
+          {/* Crown coverage bar */}
+          <div className="px-4 py-2 border-b border-[var(--color-border)]">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-[var(--color-text-dim)] w-14 shrink-0">Coverage</span>
+              <div className="flex-1 h-2 rounded-full bg-gray-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[var(--color-primary)] transition-all"
+                  style={{ width: `${crowns.total_members > 0 ? (crowns.members_with_crowns / crowns.total_members) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-[var(--color-text-dim)] w-10 text-right">
+                {crowns.total_members > 0 ? Math.round((crowns.members_with_crowns / crowns.total_members) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+          {/* Type distribution */}
+          {Object.keys(crowns.crown_type_distribution).length > 0 && (
+            <div className="px-4 py-2 border-b border-[var(--color-border)] flex flex-wrap gap-3">
+              {Object.entries(crowns.crown_type_distribution).map(([type, count]) => (
+                <div key={type} className="flex items-center gap-1.5">
+                  <span className={`text-xs font-medium ${CROWN_TYPE_COLORS[type] || 'text-[var(--color-primary)]'}`}>
+                    {type}
+                  </span>
+                  <span className="text-[10px] text-[var(--color-text-dim)]">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Crown list */}
+          {crowns.crowns.length > 0 && (
+            <div className="divide-y divide-[var(--color-border)] max-h-48 overflow-y-auto">
+              {crowns.crowns.map((c) => (
+                <div key={c.id} className="px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-xs font-medium ${CROWN_TYPE_COLORS[c.crown_type] || 'text-[var(--color-primary)]'}`}>
+                      {c.crown_type}
+                    </span>
+                    <span className="text-xs font-mono text-[var(--color-text-dim)] truncate">
+                      {c.crown_id.slice(0, 12)}...
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[var(--color-text-dim)] shrink-0">
+                    {c.equipped_at ? timeAgo(c.equipped_at) : 'unequipped'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Blind Spots Alert */}
       {blindSpots.length > 0 ? (
@@ -480,25 +618,6 @@ export default function Watch() {
             </div>
           )}
 
-          {/* Crown Distribution */}
-          {crowns && Object.keys(crowns.crown_type_distribution).length > 0 && (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3">
-              <h4 className="text-xs text-[var(--color-text-dim)] mb-2">Crown Types</h4>
-              <div className="space-y-1">
-                {Object.entries(crowns.crown_type_distribution).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between text-xs">
-                    <span>{type}</span>
-                    <span className="text-[var(--color-primary)]">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {crowns && crowns.members_without_crowns > 0 && Object.keys(crowns.crown_type_distribution).length === 0 && (
-            <div className="border border-dashed border-[var(--color-border)] rounded-lg p-3 text-center">
-              <p className="text-xs text-[var(--color-text-dim)]">No crowns distributed yet.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
