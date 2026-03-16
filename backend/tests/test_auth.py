@@ -62,6 +62,23 @@ async def test_expired_token_returns_401(client):
     assert resp.status_code == 401
 
 
+async def test_callback_rejects_missing_state(client):
+    """Callback without valid state token returns 400."""
+    with patch("app.auth.routes.settings") as mock_settings:
+        mock_settings.eve_frontier_client_id = "test-client-id"
+        resp = await client.get("/auth/callback?code=fake&state=invalid")
+        assert resp.status_code == 400
+        assert "Invalid OAuth state" in resp.json()["detail"]
+
+
+async def test_callback_rejects_empty_state(client):
+    """Callback with empty state returns 400."""
+    with patch("app.auth.routes.settings") as mock_settings:
+        mock_settings.eve_frontier_client_id = "test-client-id"
+        resp = await client.get("/auth/callback?code=fake&state=")
+        assert resp.status_code == 400
+
+
 async def test_login_returns_501_without_credentials(client):
     """SSO login requires EVE_FRONTIER_CLIENT_ID to be configured."""
     resp = await client.get("/auth/login")

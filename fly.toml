@@ -4,9 +4,12 @@ primary_region = "ord"
 [build]
   dockerfile = "Dockerfile"
 
+[deploy]
+  release_command = "alembic upgrade head"
+
 [env]
   ENVIRONMENT = "production"
-  DATABASE_URL = "sqlite+aiosqlite:///data/tribe.db"
+  # DATABASE_URL set via `fly secrets set` — supports PostgreSQL or SQLite
   # EVE_FRONTIER_CALLBACK_URL set via `fly secrets set` — not hardcoded
 
 [http_service]

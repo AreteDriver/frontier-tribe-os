@@ -1,6 +1,7 @@
 """Auth routes — FusionAuth SSO callback + dev login."""
 
 import logging
+import time
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -24,6 +25,18 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# CSRF state store — maps state token → expiry timestamp (5 min TTL)
+_pending_states: dict[str, float] = {}
+_STATE_TTL = 300  # 5 minutes
+
+
+def _cleanup_states() -> None:
+    """Remove expired state tokens."""
+    now = time.time()
+    expired = [k for k, v in _pending_states.items() if v < now]
+    for k in expired:
+        del _pending_states[k]
+
 
 @router.get("/login")
 @limiter.limit("10/minute")
@@ -35,6 +48,8 @@ async def login(request: Request):
             detail="SSO not configured — set EVE_FRONTIER_CLIENT_ID and EVE_FRONTIER_CLIENT_SECRET",
         )
     url, state = await get_authorize_url()
+    _cleanup_states()
+    _pending_states[state] = time.time() + _STATE_TTL
     return RedirectResponse(url=url)
 
 
@@ -52,6 +67,13 @@ async def callback(
             status_code=501,
             detail="SSO not configured — set EVE_FRONTIER_CLIENT_ID and EVE_FRONTIER_CLIENT_SECRET",
         )
+    # CSRF state validation
+    if not state or state not in _pending_states:
+        logger.warning("Invalid or missing OAuth state parameter")
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+    if _pending_states.pop(state) < time.time():
+        logger.warning("Expired OAuth state parameter")
+        raise HTTPException(status_code=400, detail="OAuth state expired")
     try:
         token_data = await exchange_code(code)
         user_info = await get_userinfo(token_data["access_token"])
