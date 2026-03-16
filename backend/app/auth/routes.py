@@ -1,6 +1,7 @@
 """Auth routes — FusionAuth SSO callback + dev login."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +28,7 @@ async def login():
             detail="SSO not configured — set EVE_FRONTIER_CLIENT_ID and EVE_FRONTIER_CLIENT_SECRET",
         )
     url, state = await get_authorize_url()
-    return {"authorize_url": url, "state": state}
+    return RedirectResponse(url=url)
 
 
 @router.get("/callback")
