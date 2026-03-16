@@ -165,4 +165,11 @@ MIT
 
 ---
 
+## Also Built for This Hackathon
+
+- **[WatchTower](https://github.com/AreteDriver/watchtower)** — Chain archaeology + AI intelligence. Behavioral fingerprints, reputation scoring, kill network analysis, on-chain Sui subscriptions. [Live demo](https://watchtower-evefrontier.vercel.app/)
+- **[Monolith](https://github.com/AreteDriver/monolith)** — Blockchain anomaly detector. 17 detection rules, real-time Canvas2D map, auto-filed bug reports with chain evidence. [Live demo](https://monolith-evefrontier.fly.dev/)
+
+---
+
 Built by [AreteDriver](https://github.com/AreteDriver) for the **EVE Frontier x Sui Hackathon 2026**.
