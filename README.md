@@ -2,140 +2,167 @@
 
 ![CI](https://github.com/AreteDriver/frontier-tribe-os/actions/workflows/ci.yml/badge.svg)
 
-> Operations platform for EVE Frontier Tribes and Syndicates — a toolkit for civilization.
+> Full-stack tribe and corp management platform for EVE Frontier — census, production, treasury, intel, and threat analysis in one place.
 
 **EVE Frontier x Sui Hackathon 2026** | March 11-31
 
-**Live Demo**: [Frontend](https://frontend-ten-theta-80.vercel.app) | [API](https://frontier-tribe-os.fly.dev/docs)
+---
 
-## The Problem
+## Live Demo
 
-EVE Frontier tribes need coordination tools. Who's in the tribe? What are we building? Where's the treasury? Today this is spreadsheets, Discord channels, and manual wallet checks.
+| | URL |
+|--|-----|
+| **Frontend** | [frontier-tribe-os on Vercel](https://frontend-ten-theta-80.vercel.app) |
+| **API Docs** | [frontier-tribe-os.fly.dev/docs](https://frontier-tribe-os.fly.dev/docs) |
 
-## What It Does
+**To try it:** Click the **Dev Login** button on the landing page. No wallet or SSO required. You get a full session with access to all 7 modules.
 
-Three integrated modules for tribe leaders and officers:
+---
 
-### Census — Who's Here
-- EVE Frontier SSO authentication (FusionAuth + Sui zkLogin)
-- Member roster with role hierarchy: Leader > Officer > Member > Recruit
-- Invite-code join flow with leader/officer approval
-- World API sync for tribe and character data
+## Modules
 
-### Forge Planner — What Are We Building
-- Production job board (Kanban-style: queued → in_progress → blocked → complete)
-- Tribe inventory tracking with upsert
-- Role-gated access (members can view, leaders/officers can manage)
+| Module | What it does |
+|--------|-------------|
+| **Census** | Tribe roster and role management (Leader > Officer > Member > Recruit). Invite codes, join approval, World API sync. |
+| **Forge** | Production job board (queued / in_progress / blocked / complete). Tribe inventory tracking with upsert. |
+| **Ledger** | Real-time Sui wallet balances via JSON-RPC. Transaction history with on-chain `tx_digest` verification. No custodial keys. |
+| **Watch** | Orbital zone monitoring and scan tracking. Active scanner registry with hourly activity windows. |
+| **Intel** | Kill feed with pilot and corp deep-dives. Battle report reconstruction with timeline and side analysis. Corp leaderboard. |
+| **Alerts** | Configurable Discord webhook alerts for kill events, threat escalations, and blind-spot detection. |
+| **Warden** | LLM-powered threat analysis. FC briefings with zone-level risk assessment and hypothesis evaluation. |
 
-### Ledger — Where's The Money
-- Real-time Sui wallet balances via JSON-RPC (treasury + individual)
-- Transaction history with on-chain verification (tx_digest)
-- Frontend wallet connect via @mysten/dapp-kit (client-side signing only)
-- Backend never holds private keys
+**Global Search** spans all modules from a single input.
+
+---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                    Frontend (React)                    │
-│  React 19 + TypeScript + Tailwind CSS + Vite          │
-│  @mysten/dapp-kit for wallet connect                  │
-└────────────────┬─────────────────────────────────────┘
-                 │ REST API + JWT
-┌────────────────┴─────────────────────────────────────┐
-│                  Backend (FastAPI)                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │  Census   │  │  Forge   │  │  Ledger  │           │
-│  │  Module   │  │  Module  │  │  Module  │           │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘           │
-│       │              │              │                  │
-│       v              v              v                  │
-│  ┌─────────────────────────────────────────┐         │
-│  │         SQLAlchemy (async)              │         │
-│  └─────────────────────────────────────────┘         │
-└──────┬───────────────────────────────────┬───────────┘
-       │                                   │
-       v                                   v
-  ┌─────────┐                    ┌──────────────────┐
-  │PostgreSQL│                    │  External APIs   │
-  │ / SQLite │                    │  - World API     │
-  └──────────┘                    │  - Sui JSON-RPC  │
-                                  └──────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                   Frontend (Vercel)                        │
+│  React 19 · TypeScript · Tailwind v4 · Vite               │
+│  @mysten/dapp-kit · EF-Map embed · Vercel Analytics       │
+└──────────────────────┬────────────────────────────────────┘
+                       │ REST + JWT
+┌──────────────────────┴────────────────────────────────────┐
+│                   Backend (Fly.io)                         │
+│  FastAPI · SQLAlchemy async · Pydantic v2                  │
+│                                                            │
+│  ┌────────┐ ┌───────┐ ┌────────┐ ┌───────┐ ┌───────┐    │
+│  │ Census │ │ Forge │ │ Ledger │ │ Watch │ │ Intel │    │
+│  └────┬───┘ └───┬───┘ └───┬────┘ └───┬───┘ └───┬───┘    │
+│  ┌────┴───┐ ┌───┴────┐                                    │
+│  │ Alerts │ │ Warden │  (LLM briefings via Anthropic)     │
+│  └────────┘ └────────┘                                    │
+│       │          │          │          │          │        │
+│       v          v          v          v          v        │
+│  ┌────────────────────────────────────────────────┐       │
+│  │            SQLAlchemy (async engine)            │       │
+│  └────────────────────────────────────────────────┘       │
+└───────┬──────────────────────────────────┬────────────────┘
+        │                                  │
+        v                                  v
+   ┌──────────┐                  ┌──────────────────┐
+   │PostgreSQL│                  │  External APIs   │
+   │ / SQLite │                  │  · World API     │
+   └──────────┘                  │  · Sui JSON-RPC  │
+                                 │  · Anthropic     │
+                                 │  · EF-Map        │
+                                 └──────────────────┘
 ```
 
-## Requirements
-
-- Python 3.12+
-- Node.js 20+
-- Docker & Docker Compose (for full stack)
-
-## Quick Start
-
-```bash
-# Full stack with Docker
-cp .env.example .env
-docker-compose up
-
-# Or run separately:
-# Backend
-cd backend && pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Frontend
-cd frontend && npm install && npm run dev
-```
-
-Dev login: `POST http://localhost:8000/auth/dev-login?name=YourName`
-
-## API Endpoints
-
-| Module | Method | Path | Description |
-|--------|--------|------|-------------|
-| Auth | POST | `/auth/dev-login` | Dev-mode login |
-| Auth | GET | `/auth/login` | SSO redirect |
-| Census | POST | `/census/tribes` | Create tribe |
-| Census | GET | `/census/tribes/{id}/members` | Roster |
-| Census | POST | `/census/tribes/join/{code}` | Request to join |
-| Census | PATCH | `/census/tribes/{id}/members/{id}/role` | Change role |
-| Forge | POST | `/forge/tribes/{id}/jobs` | Create job |
-| Forge | GET | `/forge/tribes/{id}/jobs` | Job board |
-| Forge | PUT | `/forge/tribes/{id}/inventory` | Upsert inventory |
-| Ledger | GET | `/ledger/tribes/{id}/balances` | Treasury balance |
-| Ledger | POST | `/ledger/tribes/{id}/transactions` | Record tx |
-
-Full API docs at `/docs` (Swagger UI) when running.
+---
 
 ## Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | React 19 + TypeScript + Tailwind CSS v4 + Vite |
-| Backend | FastAPI + SQLAlchemy async + Pydantic v2 |
-| Database | PostgreSQL (prod) / SQLite (dev/demo) |
-| Auth | EVE Frontier FusionAuth SSO + JWT |
-| Blockchain | Sui JSON-RPC + @mysten/dapp-kit |
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Tailwind CSS v4, Vite |
+| Backend | FastAPI, SQLAlchemy async, Pydantic v2, Python 3.12 |
+| Database | PostgreSQL (prod) / SQLite (dev) |
+| Auth | Dev-login (hackathon) + JWT sessions |
+| Blockchain | Sui JSON-RPC, @mysten/dapp-kit (client-side signing) |
+| LLM | Anthropic Claude (Warden briefings) |
+| Map | EF-Map embed for system visualization |
 | CI/CD | GitHub Actions (lint + test + security) |
-| Deploy | Fly.io |
+| Deploy | Fly.io (backend), Vercel (frontend) |
 
-## Testing
+---
 
-193 tests covering all 7 modules:
+## Getting Started
+
+### Full stack (Docker)
 
 ```bash
+git clone https://github.com/AreteDriver/frontier-tribe-os.git
+cd frontier-tribe-os
+cp .env.example .env
+docker-compose up
+```
+
+### Manual
+
+```bash
+# Backend
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+Dev login (no SSO needed):
+
+```bash
+curl -X POST http://localhost:8000/auth/dev-login?name=YourName
+```
+
+---
+
+## API Documentation
+
+Interactive Swagger UI available at `/docs` on any running instance:
+
+- **Local**: http://localhost:8000/docs
+- **Production**: https://frontier-tribe-os.fly.dev/docs
+
+---
+
+## Tests
+
+210 tests (195 backend + 15 frontend). All use in-memory SQLite — no external services required.
+
+```bash
+# Backend
 cd backend
 pip install -r requirements.txt -r requirements-dev.txt
 pytest --cov=app -v
+
+# Frontend
+cd frontend
+npm test
 ```
 
-Tests use in-memory SQLite — no external services required.
+---
 
-## What Makes This Different
+## What Sets This Apart
 
-- **No custodial wallets**: Backend records transactions but never holds keys. All signing is client-side via dapp-kit.
-- **World API integration**: Syncs tribes and characters directly from EVE Frontier's blockchain gateway.
-- **Role-gated everything**: Every endpoint enforces tribe membership and role hierarchy.
-- **Modular by design**: Census, Forge, and Ledger are independent. Breaking one doesn't break the others.
+- **No custodial wallets** — Backend records transactions but never holds keys. All signing is client-side via dapp-kit.
+- **LLM-powered FC briefings** — Warden module generates zone-level threat analysis and tactical recommendations using Claude.
+- **7 modules, one platform** — Census, Forge, Ledger, Watch, Intel, Alerts, and Warden work together with shared context and global search.
+- **World API + Sui chain integration** — Syncs tribes, characters, and wallet data directly from EVE Frontier's blockchain layer.
+- **Dev-login for judges** — One click to a full session. No wallet setup, no SSO dance.
+
+---
 
 ## License
 
 MIT
+
+---
+
+Built by [AreteDriver](https://github.com/AreteDriver) for the **EVE Frontier x Sui Hackathon 2026**.
