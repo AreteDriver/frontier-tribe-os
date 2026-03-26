@@ -104,8 +104,7 @@ frontier-tribe-os/
 - CSS
 - EVE
 - Forge Planner
-- Frontier Tribe
-- Frontier Tribes
+- Frontier Tribe OS
 - GET
 - JSON
 - JWT
