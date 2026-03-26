@@ -152,6 +152,12 @@ frontier-tribe-os/
 - `full-stack-dev`
 - `website-builder`
 
+## Frontend Dev Tools
+
+- **Agentation** (`npm install agentation`): Dev-only React component for visual feedback to Claude Code. Click/annotate UI elements → structured markdown with CSS selectors + bounding boxes → paste to agent. Use during polish on Kill Feed, System Intelligence, Alert Config, and Pilot/Corp Intel views.
+- **Liveline**: Single-canvas React chart (60fps, zero deps). Candidate for Kill Feed timeline, System Intelligence activity graphs, and real-time alert frequency visualization.
+- **cmdk** (`npm install cmdk`): ⌘K command menu. Enhance global search with keyboard-driven entity/system/module navigation.
+
 ## Git Conventions
 
 - Commit messages: Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`)
