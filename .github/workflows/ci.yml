@@ -91,3 +91,15 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Notify Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_CICD }}
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR=$([ "$STATUS" = "success" ] && echo 3066993 || echo 15158332)
+          ICON=$([ "$STATUS" = "success" ] && echo "✅" || echo "❌")
+          curl -s -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"$ICON ${{ github.repository }}\",\"description\":\"Branch: ${{ github.ref_name }} | Status: $STATUS\",\"color\":$COLOR}]}"
